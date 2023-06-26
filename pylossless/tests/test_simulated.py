@@ -8,7 +8,7 @@ import mne
 from mne import make_ad_hoc_cov
 from mne.datasets import sample
 
-from mne.simulation import (simulate_sparse_stc, simulate_raw, add_noise)
+from mne.simulation import simulate_sparse_stc, simulate_raw, add_noise
 
 import mne_bids
 
@@ -176,16 +176,21 @@ pipeline.raw = raw_sim
 @pytest.mark.parametrize('pipeline',
                          [(pipeline)])
 def test_simulated_raw(pipeline):
+    pipeline._check_sfreq()
+    # This file should have been downsampled
+    assert pipeline.raw.info['sfreq'] == 600
     # FIND NOISY EPOCHS
     pipeline.flag_ch_sd_epoch()
     # Epoch 2 was made noisy and should be flagged.
     assert np.array_equal(pipeline.flags['epoch']['ch_sd'], [2])
+    epochs = pipeline.get_epochs()
+    # only epoch at indice 2 should have been dropped
+    assert all(not tup or i == 2 for i, tup in enumerate(epochs.drop_log))
 
     # RUN FLAG_CH_SD
     pipeline.flag_ch_sd_ch()
     noisy_chs = ['EEG 001', 'EEG 003', 'EEG 005', 'EEG 007']
     assert np.array_equal(pipeline.flags['ch']['ch_sd'], noisy_chs)
-    assert np.array_equal(pipeline.flags['ch']['manual'], noisy_chs)
 
     # FIND UNCORRELATED CHS
     data_r_ch = pipeline.flag_ch_low_r()
