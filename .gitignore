@@ -139,3 +139,6 @@ project_ll_config_face13_egi.yaml
 
 # sphinx gallery
 ./docs/source/auto_examples/
+
+# Testing file
+test.py

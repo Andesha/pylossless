@@ -11,19 +11,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 with Path("requirements.txt").open() as f:
-    requirements = f.read().splitlines()
-
-extras = {
-    "dash": "requirements_qc.txt",
-    "test": "requirements_testing.txt",
-    "doc": "./docs/requirements_doc.txt",
-}
-
-extras_require = {}
-for extra, req_file in extras.items():
-    with Path(req_file).open() as file:
-        requirements_extra = file.read().splitlines()
-    extras_require[extra] = requirements_extra
+    requirements = f.read().splitlines()[1:] # Trimming off that first line to avoid the torch cpu thing
 
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
@@ -40,7 +28,7 @@ setup(
     url="https://github.com/lina-usc/pylossless",
     packages=find_packages(),
     install_requires=requirements,
-    extras_require=extras_require,
     include_package_data=True,
     entry_points={"console_scripts": qc_entry_point},
+    dependency_links=['https://download.pytorch.org/whl/cpu'],
 )
