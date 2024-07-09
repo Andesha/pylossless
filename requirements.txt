@@ -1,12 +1,12 @@
-numpy>=1.21.2
-EDFlib-Python
-mne>=1.5
-mne_bids>=0.14
-pandas
-xarray
-scipy>=1.7.1
-mne_icalabel>=0.5.0
-pyyaml
-scikit-learn
-openneuro-py
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 torch
+mne>=1.7
+mne_bids
+pandas
+scikit-learn
+pyyaml
+mne_icalabel>=0.6.0
+xarray
+numpy<2
+edfio

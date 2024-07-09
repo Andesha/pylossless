@@ -11,7 +11,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 with Path("requirements.txt").open() as f:
-    requirements = f.read().splitlines()
+    requirements = f.read().splitlines()[1:] # Trimming off that first line to avoid the torch cpu thing
 
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
@@ -30,4 +30,5 @@ setup(
     install_requires=requirements,
     include_package_data=True,
     entry_points={"console_scripts": qc_entry_point},
+    dependency_links=['https://download.pytorch.org/whl/cpu'],
 )
