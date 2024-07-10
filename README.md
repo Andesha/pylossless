@@ -1,7 +1,3 @@
-[![codecov](https://codecov.io/github/lina-usc/pylossless/branch/main/graph/badge.svg?token=SVAD8HTJNG)](https://codecov.io/github/lina-usc/pylossless)
-
-[![Documentation Status](https://readthedocs.org/projects/pylossless/badge/?version=latest)](https://pylossless.readthedocs.io/en/latest/?badge=latest)
-
 ![logo](https://github.com/scott-huberty/wip_pipeline-figures/blob/main/logo/Logo_neutral.png)
 
 
