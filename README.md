@@ -24,15 +24,9 @@ All credit to the original Authors.
 
 The development version can be installed from GitHub with
 ```bash
-$ git clone git@github.com:lina-usc/pylossless.git
-$ pip install --editable ./pylossless
+$ git clone https://github.com/Andesha/pylossless.git
+$ pip install ./pylossless
 ```
-
-for an editable installation, or simply with 
-```bash
-$ pip install git+https://github.com/lina-usc/pylossless.git
-```
-for a static version. 
 
 Please find the full documentation at
 [**pylossless.readthedocs.io**](https://pylossless.readthedocs.io/en/latest/index.html).
