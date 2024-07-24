@@ -54,9 +54,17 @@ print(pipeline.flagged_chs)
 print(pipeline.flagged_epochs)
 ```
 
-Once you are ready, you can save your file:
+Once you are ready, you can apply the changes and save your file as regular:
+
 ```
-pipeline.save(pipeline.get_derivative_path(bids_path), overwrite=True)
+cleaned_state = pipeline.raw.copy()
+cleaned_state.load_data()
+
+# "Blindly" trust the ic classification for test purposes here:
+pipeline.ica2.exclude = [index for index,comp in pipeline.flags['ic'].iterrows() if comp['ic_type'] in ['eog', 'ecg', 'muscle', 'line_noise', 'channel_noise']]
+pipeline.ica2.apply(cleaned_state)
+
+cleaned_state = cleaned_state.interpolate_bads()
 ```
 
 
