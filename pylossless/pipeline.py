@@ -10,6 +10,7 @@
 from copy import deepcopy
 from pathlib import Path
 from functools import partial
+from importlib.metadata import version
 
 # Math and data structures
 import numpy as np
@@ -226,6 +227,64 @@ def _detect_outliers(
     return prop_outliers[prop_outliers > flag_crit].coords.to_index().values
 
 
+def find_bads_by_threshold(epochs, threshold=5e-5):
+    """Return channels with a standard deviation consistently above a fixed threshold.
+
+    Parameters
+    ----------
+    epochs : mne.Epochs
+        an instance of mne.Epochs with a single channel type.
+    threshold : float
+        the threshold in volts. If the standard deviation of a channel's voltage
+        variance at a specific epoch is above the threshold, then that channel x epoch
+        will be flagged as an "outlier". If more than 20% of epochs are flagged as
+        outliers for a specific channel, then that channel will be flagged as bad.
+        Default threshold is 5e-5 (0.00005), i.e. 50 microvolts.
+
+    Returns
+    -------
+    list
+        a list of channel names that are considered outliers.
+
+    Notes
+    -----
+    If you are having trouble converting between exponential notation and
+    decimal notation, you can use the following code to convert between the two:
+
+    >>> import numpy as np
+    >>> threshold = 5e-5
+    >>> with np.printoptions(suppress=True):
+    ...     print(threshold)
+    0.00005
+
+    .. seealso::
+
+        :func:`~pylossless.LosslessPipeline.flag_channels_fixed_threshold` to use
+        this function within the lossless pipeline.
+
+    Examples
+    --------
+    >>> import mne
+    >>> import pylossless as ll
+    >>> fname = mne.datasets.sample.data_path() / "MEG/sample/sample_audvis_raw.fif"
+    >>> raw = mne.io.read_raw(fname, preload=True).pick("eeg")
+    >>> raw.apply_function(lambda x: x * 3, picks=["EEG 001"]) # Make a noisy channel
+    >>> epochs = mne.make_fixed_length_epochs(raw, preload=True)
+    >>> bad_chs = ll.pipeline.find_bads_by_threshold(epochs)
+    """
+    # TODO: We should make this function handle multiple channel types.
+    # TODO: but I'd like to avoid making a copy of the epochs object
+    ch_types = np.unique(epochs.get_channel_types()).tolist()
+    if len(ch_types) > 1:
+        warn(
+            f"The epochs object contains multiple channel types: {ch_types}.\n"
+            " This will likely bias the results of the threshold detection."
+            " Use the `mne.Epochs.pick` to select a single channel type."
+        )
+    bads = _threshold_volt_std(epochs, flag_dim="ch", threshold=threshold)
+    return bads
+
+
 def _threshold_volt_std(epochs, flag_dim, threshold=5e-5):
     """Detect epochs or channels whose voltage std is above threshold.
 
@@ -246,7 +305,7 @@ def _threshold_volt_std(epochs, flag_dim, threshold=5e-5):
         assert len(threshold) == 2
         l_out, u_out = threshold
         init_dir = "both"
-    elif isinstance(threshold, float):
+    elif isinstance(threshold, (float, int)):
         l_out, u_out = (0, threshold)
         init_dir = "pos"
     else:
@@ -357,8 +416,8 @@ def coregister(
 
     Parameters
     ----------
-    raw_edf : mne.Raw
-        an instance of `mne.Raw` to coregister.
+    raw_edf : mne.io.Raw
+        an instance of `mne.io.Raw` to coregister.
     fiducials : str (default 'estimated')
         fiducials to use for coregistration. if `'estimated'`, gets fiducials
         from fsaverage.
@@ -392,8 +451,8 @@ def warp_locs(self, raw):
 
     Parameters
     ----------
-    raw : mne.Raw
-        an instance of mne.Raw
+    raw : mne.io.Raw
+        an instance of mne.io.Raw
 
     Returns
     -------
@@ -417,7 +476,7 @@ class LosslessPipeline:
 
     Parameters
     ----------
-    config_fname : pathlib.Path
+    config_path : pathlib.Path
         path to config file specifying the parameters to be used
         in the pipeline.
 
@@ -429,12 +488,12 @@ class LosslessPipeline:
         :class:`~pylossless.flagging.FlaggedChs`,
         :class:`~pylossless.flagging.FlaggedEpochs`, and
         :class:`~pylossless.flagging.FlaggedICs`, respectively.
-    config_fname : pathlib.Path
+    config_path : pathlib.Path
         path to the config file specifying the parameters to be used in the
         in the pipeline.
     config : dict
         A dictionary containing the pipeline parameters.
-    raw : mne.Raw
+    raw : mne.io.Raw
         An instance of :class:`~mne.io.Raw` containing that will
         be processed by the pipeline.
     ica1 : mne.preprocessing.ICA
@@ -445,23 +504,34 @@ class LosslessPipeline:
         during the pipeline.
     """
 
-    def __init__(self, config_fname=None):
+    def __init__(self, config_path=None, config=None):
         """Initialize class.
 
         Parameters
         ----------
-        config_fname : pathlib.Path
-            path to config file specifying the parameters to be used
-            in the pipeline.
+        config_path : pathlib.Path | str | None
+            Path to config file specifying the parameters to be used in the pipeline.
+
+        config : pylossless.config.Config | None
+            :class:`pylossless.config.Config` object for the pipeline.
         """
+        self.bids_path = None
         self.flags = {
             "ch": FlaggedChs(self),
             "epoch": FlaggedEpochs(self),
             "ic": FlaggedICs(),
         }
-        self.config_fname = config_fname
-        if config_fname:
+        self._config = None
+
+        if config:
+            self.config = config
+            if config_path is None:
+                self.config_path = "._tmp_pylossless.yaml"
+        elif config_path:
+            self.config_path = Path(config_path)
             self.load_config()
+        else:
+            self.config_path = None
         self.raw = None
         self.ica1 = None
         self.ica2 = None
@@ -483,13 +553,13 @@ class LosslessPipeline:
         ]
         flagged_times = _sum_flagged_times(self.raw, lossless_flags)
 
-        config_fname = self.config_fname
+        config_path = self.config_path
         raw = self.raw.filenames if self.raw else "Not specified"
 
         html = "<h3>LosslessPipeline</h3>"
         html += "<table>"
         html += f"<tr><td><strong>Raw</strong></td><td>{raw}</td></tr>"
-        html += f"<tr><td><strong>Config</strong></td><td>{config_fname}</td></tr>"
+        html += f"<tr><td><strong>Config</strong></td><td>{config_path}</td></tr>"
         html += "</table>"
 
         # Flagged Channels
@@ -519,9 +589,30 @@ class LosslessPipeline:
 
         return html
 
+    @property
+    def config(self):
+        return self._config
+
+    @config.setter
+    def config(self, config):
+        self._config = config
+        self._config["version"] = version("pylossless")
+
+    @property
+    def config_fname(self):
+        warn('config_fname is deprecated and will be removed from future versions.',
+             DeprecationWarning)
+        return self.config_path
+
+    @config_fname.setter
+    def config_fname(self, config_path):
+        warn('config_fname is deprecated and will be removed from future versions.',
+             DeprecationWarning)
+        self.config_path = config_path
+
     def load_config(self):
         """Load the config file."""
-        self.config = Config().read(self.config_fname)
+        self.config = Config().read(self.config_path)
 
     def _check_sfreq(self):
         """Make sure sampling frequency is an integer.
@@ -618,7 +709,8 @@ class LosslessPipeline:
             self.raw, duration=tmax - tmin, overlap=overlap
         )
 
-    def get_epochs(self, detrend=None, preload=True, rereference=True, picks="eeg"):
+    def get_epochs(self, detrend=None, preload=True,
+                   rereference=True, picks="eeg"):
         """Create mne.Epochs according to user arguments.
 
         Parameters
@@ -634,6 +726,8 @@ class LosslessPipeline:
         preload : bool (default True)
             Load epochs from disk when creating the object or wait before
             accessing each epoch (more memory efficient but can be slower).
+        picks : str (default "eeg")
+            Type of channels to pick.
 
         Returns
         -------
@@ -655,7 +749,7 @@ class LosslessPipeline:
         epochs = epochs.pick(picks=picks, exclude="bads").pick(
             picks=None, exclude=list(self.flags["ch"].get_flagged())
         )
-        if rereference:
+        if rereference and picks=="eeg":
             self.flags["ch"].rereference(epochs)
 
         return epochs
@@ -687,10 +781,13 @@ class LosslessPipeline:
         """
         if "find_breaks" not in self.config or not self.config["find_breaks"]:
             return
+        if not self.raw.annotations:
+            logger.debug("No annotations found in raw object. Skipping find_breaks.")
+            return
         breaks = annotate_break(self.raw, **self.config["find_breaks"])
         self.raw.set_annotations(breaks + self.raw.annotations)
 
-    def _flag_volt_std(self, flag_dim, threshold=5e-5):
+    def _flag_volt_std(self, flag_dim, threshold=5e-5, picks="eeg"):
         """Determine if voltage standard deviation is above threshold.
 
         Parameters
@@ -704,6 +801,8 @@ class LosslessPipeline:
             channel x epoch indices will considered an outlier. Defaults
             to 5e-5, or 50 microvolts. Note that here, 'time' refers to
             the samples in an epoch.
+        picks : str (default "eeg")
+            Type of channels to pick.
 
         Notes
         -----
@@ -723,24 +822,66 @@ class LosslessPipeline:
         is affected by the impedance of the system that the data was recording
         on. You may need to assess a more appropriate value for your own data.
         """
-        epochs = self.get_epochs()
-        above_threshold = _threshold_volt_std(
-            epochs, flag_dim=flag_dim, threshold=threshold
-        )
+        epochs = self.get_epochs(picks=picks)
+        if flag_dim == "ch":
+            above_threshold = find_bads_by_threshold(epochs, threshold=threshold)
+            if above_threshold.any():
+                logger.info(
+                    f"🚩 Found {len(above_threshold)} channels with "
+                    f"voltage variance above {threshold} volts: {above_threshold}"
+                )
+            else:
+                msg = f"No channels with standard deviation above {threshold} volts."
+                logger.info(msg)
+        else:  # TODO: Implement an annotate_bads_by_threshold for epochs
+            above_threshold = _threshold_volt_std(
+                epochs, flag_dim=flag_dim, threshold=threshold
+            )
         self.flags[flag_dim].add_flag_cat("volt_std", above_threshold, epochs)
 
-    def find_outlier_chs(self, inst):
-        """Detect outlier Channels to leave out of rereference."""
+    def find_outlier_chs(self, epochs=None, picks="eeg"):
+        """Detect outlier Channels to leave out of rereference.
+
+        Parameters
+        ----------
+        epochs : mne.Epochs | None
+            An instance of :class:`mne.Epochs`, or ``None``. If ``None``, then
+            :attr:`pylossless.LosslessPipeline.raw` should be set, and this
+            method will call :meth:`pylossless.LosslessPipeline.get_epochs`
+            to create epochs to use for outlier detection.
+        picks : str (default "eeg")
+            Channels to include in the outlier detection process. You can pass any
+            argument that is valid for the :meth:`~mne.Epochs.pick` method, but
+            you should avoid passing a mix of channel types with differing units of
+            measurement (e.g. EEG and MEG), as this would likely lead to incorrect
+            outlier detection (e.g. all EEG channels would be flagged as outliers).
+
+        Returns
+        -------
+        list
+            a list of channel names that are considered outliers.
+
+        Notes
+        -----
+        - This method is used to detect channels that are so noisy that they
+          should be left out of the robust average rereference process.
+
+        Examples
+        --------
+        >>> import mne
+        >>> import pylossless as ll
+        >>> config = ll.Config().load_default()
+        >>> pipeline = ll.LosslessPipeline(config=config)
+        >>> fname = mne.datasets.sample.data_path() / "MEG/sample/sample_audvis_raw.fif"
+        >>> raw = mne.io.read_raw(fname)
+        >>> epochs = mne.make_fixed_length_epochs(raw, preload=True)
+        >>> chs_to_leave_out = pipeline.find_outlier_chs(epochs=epochs)
+        """
         # TODO: Reuse _detect_outliers here.
         logger.info("🔍 Detecting channels to leave out of reference.")
-        if isinstance(inst, mne.Epochs):
-            epochs = inst
-        elif isinstance(inst, mne.Raw):
+        if epochs is None:
             epochs = self.get_epochs(rereference=False)
-        else:
-            raise TypeError(
-                "inst must be an MNE Raw or Epochs object," f" but got {type(inst)}."
-            )
+        epochs = epochs.copy().pick(picks=picks)
         epochs_xr = epochs_to_xr(epochs, kind="ch")
 
         # Determines comically bad channels,
@@ -762,7 +903,8 @@ class LosslessPipeline:
 
         return mean_ch_dist.ch[mean_ch_dist > mdn + 6 * deviation].values.tolist()
 
-    def flag_channels_fixed_threshold(self, threshold=5e-5):
+    @lossless_logger
+    def flag_channels_fixed_threshold(self, threshold=5e-5, picks="eeg"):
         """Flag channels based on the stdev value across the time dimension.
 
         Flags channels if the voltage-variance standard deviation is above
@@ -773,27 +915,53 @@ class LosslessPipeline:
         threshold : float
             threshold, in volts. If the standard deviation across time in
             any channel x epoch indice is above this threshold, then the
-            channel x epoch indices will considered an outlier. Defaults
+            channel x epoch indices will be considered an outlier. Defaults
             to 5e-5, or 50 microvolts. Note that here, 'time' refers to
             the samples in an epoch. For each channel, if its std value is
             above the given threshold in more than 20% of the epochs, it
             is flagged.
+        picks : str (default "eeg")
+            Type of channels to pick.
+
+        Returns
+        -------
+        None
+            If any channels are flagged, those channel names will be logged
+            in the `flags` attribute of the `LosslessPipeline` object,
+            under the key ``'volt_std'``, e.g.
+            ``my_pipeline.flags["ch"]["volt_std"]``.
 
         Notes
         -----
-        WARNING: the default threshold of 50 microvolts may not be appropriate
-        for a particular dataset or data file, as the baseline voltage variance
-        is affected by the impedance of the system that the data was recorded
-        with. You may need to assess a more appropriate value for your own
-        data.
-        """
-        if "flag_channels_fixed_threshold" not in self.config:
-            return
-        if "threshold" in self.config["flag_channels_fixed_threshold"]:
-            threshold = self.config["flag_channels_fixed_threshold"]["threshold"]
-        self._flag_volt_std(flag_dim="ch", threshold=threshold)
+        .. warning::
 
-    def flag_epochs_fixed_threshold(self, threshold=5e-5):
+            the default threshold of 50 microvolts may not be appropriate
+            for a particular dataset or data file, as the baseline voltage variance
+            is affected by the impedance of the system that the data was recorded
+            with. You may need to assess a more appropriate value for your own
+            data. You can use the :func:`~pylossless.pipeline.find_bads_by_threshold`
+            function to quickly assess a more appropriate threshold.
+
+        .. seealso::
+
+            :func:`~pylossless.pipeline.find_bads_by_threshold`
+
+        Examples
+        --------
+        >>> import mne
+        >>> import pylossless as ll
+        >>> config = ll.Config().load_default()
+        >>> config["flag_channels_fixed_threshold"] = {"threshold": 5e-5}
+        >>> pipeline = ll.LosslessPipeline(config=config)
+        >>> sample_fpath = mne.datasets.sample.data_path()
+        >>> fpath = sample_fpath / "MEG" / "sample" / "sample_audvis_raw.fif"
+        >>> raw = mne.io.read_raw(fpath).pick("eeg")
+        >>> pipeline.raw = raw
+        >>> pipeline.flag_channels_fixed_threshold()
+        """
+        self._flag_volt_std(flag_dim="ch", threshold=threshold, picks=picks)
+
+    def flag_epochs_fixed_threshold(self, threshold=5e-5, picks="eeg"):
         """Flag epochs based on the stdev value across the time dimension.
 
         Flags an epoch if the voltage-variance standard deviation is above
@@ -809,6 +977,8 @@ class LosslessPipeline:
             the samples in an epoch. For each epoch, if the std value of
             more than 20% of channels (in that epoch) are above the given
             threshold, the epoch is flagged.
+        picks : str (default "eeg")
+            Type of channels to pick.
 
         Notes
         -----
@@ -822,10 +992,10 @@ class LosslessPipeline:
             return
         if "threshold" in self.config["flag_epochs_fixed_threshold"]:
             threshold = self.config["flag_epochs_fixed_threshold"]["threshold"]
-        self._flag_volt_std(flag_dim="epoch", threshold=threshold)
+        self._flag_volt_std(flag_dim="epoch", threshold=threshold, picks="eeg")
 
     @lossless_logger
-    def flag_noisy_channels(self):
+    def flag_noisy_channels(self, picks="eeg"):
         """Flag channels with outlying standard deviation.
 
         Calculates the standard deviation of the voltage-variance for
@@ -836,10 +1006,15 @@ class LosslessPipeline:
         current epoch) is flagged. If a channel is flagged as an outlier in
         more than n_percent of epochs (default: 20%), the channel is flagged
         for removal.
+
+        Parameters
+        ----------
+        picks : str (default "eeg")
+            Type of channels to pick.
         """
         # TODO: flag "ch_sd" should be renamed "time_sd"
         # TODO: doc for step 3 and 4 need to be updated
-        epochs_xr = epochs_to_xr(self.get_epochs(), kind="ch")
+        epochs_xr = epochs_to_xr(self.get_epochs(picks=picks), kind="ch")
         data_sd = epochs_xr.std("time")
 
         # flag noisy channels
@@ -851,10 +1026,16 @@ class LosslessPipeline:
         self.flags["ch"].add_flag_cat(kind="noisy", bad_ch_names=bad_ch_names)
 
     @lossless_logger
-    def flag_noisy_epochs(self):
-        """Flag epochs with outlying standard deviation."""
+    def flag_noisy_epochs(self, picks="eeg"):
+        """Flag epochs with outlying standard deviation.
+
+        Parameters
+        ----------
+        picks : str (default "eeg")
+            Type of channels to pick.
+        """
         outlier_methods = ("quantile", "trimmed", "fixed")
-        epochs = self.get_epochs()
+        epochs = self.get_epochs(picks=picks)
         epochs_xr = epochs_to_xr(epochs, kind="ch")
         data_sd = epochs_xr.std("time")
 
@@ -871,17 +1052,28 @@ class LosslessPipeline:
         )
         self.flags["epoch"].add_flag_cat("noisy", bad_epoch_inds, epochs)
 
-    def get_n_nbr(self):
-        """Calculate nearest neighbour correlation for channels."""
+    def get_n_nbr(self, picks="eeg"):
+        """Calculate nearest neighbour correlation for channels.
+
+        Parameters
+        ----------
+        picks : str (default "eeg")
+            Type of channels to pick.
+        """
         # Calculate nearest neighbour correlation on
         # non-flagged channels and epochs...
-        epochs = self.get_epochs()
+        epochs = self.get_epochs(picks=picks)
         n_nbr_ch = self.config["nearest_neighbors"]["n_nbr_ch"]
         return chan_neighbour_r(epochs, n_nbr_ch, "max"), epochs
 
     @lossless_logger
-    def flag_uncorrelated_channels(self):
+    def flag_uncorrelated_channels(self, picks="eeg"):
         """Check neighboring channels for too high or low of a correlation.
+
+        Parameters
+        ----------
+        picks : str (default "eeg")
+            Type of channels to pick.
 
         Returns
         -------
@@ -890,7 +1082,7 @@ class LosslessPipeline:
         """
         # Calculate nearest neighbour correlation on
         # non-flagged channels and epochs...
-        data_r_ch = self.get_n_nbr()[0]
+        data_r_ch = self.get_n_nbr(picks=picks)[0]
 
         # Create the window criteria vector for flagging low_r chan_info...
         bad_ch_names = _detect_outliers(
@@ -960,8 +1152,13 @@ class LosslessPipeline:
         self.flags["ch"].add_flag_cat(kind="rank", bad_ch_names=bad_ch_names)
 
     @lossless_logger
-    def flag_uncorrelated_epochs(self):
+    def flag_uncorrelated_epochs(self, picks="eeg"):
         """Flag epochs where too many channels are uncorrelated.
+
+        Parameters
+        ----------
+        picks : str (default "eeg")
+            Type of channels to pick.
 
         Notes
         -----
@@ -971,7 +1168,7 @@ class LosslessPipeline:
         """
         # Calculate nearest neighbour correlation on
         # non-flagged channels and epochs...
-        data_r_ch, epochs = self.get_n_nbr()
+        data_r_ch, epochs = self.get_n_nbr(picks=picks)
 
         bad_epoch_inds = _detect_outliers(
             data_r_ch,
@@ -982,7 +1179,7 @@ class LosslessPipeline:
         self.flags["epoch"].add_flag_cat("uncorrelated", bad_epoch_inds, epochs)
 
     @lossless_logger
-    def run_ica(self, run):
+    def run_ica(self, run, picks="eeg"):
         """Run ICA.
 
         Parameters
@@ -991,6 +1188,8 @@ class LosslessPipeline:
             Must be 'run1' or 'run2'. 'run1' is the initial ICA use to flag
             epochs, 'run2' is the final ICA used to classify components with
             `mne_icalabel`.
+        picks : str (default "eeg")
+            Type of channels to pick.
         """
         ica_kwargs = self.config["ica"]["ica_args"][run]
         if "max_iter" not in ica_kwargs:
@@ -998,7 +1197,7 @@ class LosslessPipeline:
         if "random_state" not in ica_kwargs:
             ica_kwargs["random_state"] = 97
 
-        epochs = self.get_epochs()
+        epochs = self.get_epochs(picks=picks)
         if run == "run1":
             self.ica1 = ICA(**ica_kwargs)
             self.ica1.fit(epochs)
@@ -1006,18 +1205,24 @@ class LosslessPipeline:
         elif run == "run2":
             self.ica2 = ICA(**ica_kwargs)
             self.ica2.fit(epochs)
-            self.flags["ic"].label_components(epochs, self.ica2)
+            if picks == "eeg":
+                self.flags["ic"].label_components(epochs, self.ica2)
         else:
             raise ValueError("The `run` argument must be 'run1' or 'run2'")
 
     @lossless_logger
-    def flag_noisy_ics(self):
+    def flag_noisy_ics(self, picks="eeg"):
         """Calculate the IC standard Deviation by epoch window.
 
         Flags windows with too many ICs with outlying standard deviations.
+
+        Parameters
+        ----------
+        picks : str (default "eeg")
+            Type of channels to pick.
         """
         # Calculate IC sd by window
-        epochs = self.get_epochs()
+        epochs = self.get_epochs(picks=picks)
         epochs_xr = epochs_to_xr(epochs, kind="ic", ica=self.ica1)
         data_sd = epochs_xr.std("time")
 
@@ -1029,22 +1234,31 @@ class LosslessPipeline:
 
         # icsd_epoch_flags=padflags(raw, icsd_epoch_flags,1,'value',.5);
 
-    def save(self, derivatives_path, overwrite=False):
+    def save(self, derivatives_path=None, overwrite=False, format="EDF", event_id=None):
         """Save the file at the end of the pipeline.
 
         Parameters
         ----------
-        derivatives_path : mne_bids.BIDSPath
+        derivatives_path : None | mne_bids.BIDSPath
             path of the derivatives folder to save the file to.
         overwrite : bool (default False)
             whether to overwrite existing files with the same name.
+        format : str (default "EDF")
+            The format to use for saving the raw data. Can be ``"auto"``,
+            ``"FIF"``, ``"EDF"``, ``"BrainVision"``, ``"EEGLAB"``.
+        event_id : dict | None (default None)
+            Dictionary mapping annotation descriptions to event codes.
         """
+        if derivatives_path is None:
+            derivatives_path = self.get_derivative_path(self.bids_path)
+
         mne_bids.write_raw_bids(
             self.raw,
             derivatives_path,
             overwrite=overwrite,
-            format="EDF",
+            format=format,
             allow_preload=True,
+            event_id=event_id,
         )
         # TODO: address derivatives support in MNE bids.
         # use shutils ( or pathlib?) to rename file with ll suffix
@@ -1069,6 +1283,7 @@ class LosslessPipeline:
         config_bidspath = bpath.update(
             extension=".yaml", suffix="ll_config", check=False
         )
+
         self.config.save(config_bidspath)
 
         # Save flag["ch"]
@@ -1083,22 +1298,17 @@ class LosslessPipeline:
         # 5.a. Filter lowpass/highpass
         self.raw.filter(**self.config["filtering"]["filter_args"])
 
+        # 5.b. Filter notch
         if "notch_filter_args" in self.config["filtering"]:
             notch_args = self.config["filtering"]["notch_filter_args"]
-            # in raw.notch_filter, freqs=None is ok if method=spectrum_fit
-            if not notch_args["freqs"] and "method" not in notch_args:
-                logger.info("No notch filter arguments provided. Skipping")
-            else:
+            spectrum_fit_method = (
+                "method" in notch_args and notch_args["method"] == "spectrum_fit"
+            )
+            if notch_args["freqs"] or spectrum_fit_method:
+                # in raw.notch_filter, freqs=None is ok if method=='spectrum_fit'
                 self.raw.notch_filter(**notch_args)
-
-        # 5.b. Filter notch
-        notch_args = self.config["filtering"]["notch_filter_args"]
-        spectrum_fit_method = (
-            "method" in notch_args and notch_args["method"] == "spectrum_fit"
-        )
-        if notch_args["freqs"] or spectrum_fit_method:
-            # in raw.notch_filter, freqs=None is ok if method=='spectrum_fit'
-            self.raw.notch_filter(**notch_args)
+            else:
+                logger.info("No notch filter arguments provided. Skipping")
         else:
             logger.info("No notch filter arguments provided. Skipping")
 
@@ -1133,51 +1343,85 @@ class LosslessPipeline:
 
     @lossless_time
     def _run(self):
+
         # Make sure sampling frequency is an integer
         self._check_sfreq()
-
         self.set_montage()
 
-        # 1. Execute the staging script if specified.
-        self.run_staging_script()
+        if "modality" not in self.config:
+            self.config["modality"] = ["eeg"]
+        if isinstance(self.config["modality"], str):
+            self.config["modality"] = [self.config["modality"]]
 
-        # find breaks
-        self.find_breaks(message="Looking for break periods between tasks")
+        for picks in self.config["modality"]:
+            # 1. Execute the staging script if specified.
+            self.run_staging_script()
 
-        # OPTIONAL: Flag chs/epochs based off fixed std threshold of time axis
-        self.flag_epochs_fixed_threshold()
-        self.flag_channels_fixed_threshold()
+            # find breaks
+            self.find_breaks(message="Looking for break periods between tasks")
 
-        # 3.flag channels based on large Stdev. across time
-        self.flag_noisy_channels(message="Flagging Noisy Channels")
+            # OPTIONAL: Flag chs/epochs based off fixed std threshold of time axis
+            self.flag_epochs_fixed_threshold(picks=picks)
+            if "flag_channels_fixed_threshold" in self.config:
+                msg = "Flagging Channels by fixed threshold"
+                kwargs = dict(picks=picks, message=msg)
+                if "threshold" in self.config["flag_channels_fixed_threshold"]:
+                    threshold = self.config["flag_channels_fixed_threshold"][
+                        "threshold"
+                    ]
+                    kwargs["threshold"] = threshold
+                self.flag_channels_fixed_threshold(**kwargs)
 
-        # 4.flag epochs based on large Channel Stdev. across time
-        self.flag_noisy_epochs(message="Flagging Noisy Time periods")
+            # 3.flag channels based on large Stdev. across time
+            msg = "Flagging Noisy Channels"
+            self.flag_noisy_channels(message=msg, picks=picks)
 
-        # 5. Filtering
-        self.filter(message="Filtering")
+            # 4.flag epochs based on large Channel Stdev. across time
+            msg = "Flagging Noisy Time periods"
+            self.flag_noisy_epochs(message=msg, picks=picks)
 
-        # 6. calculate nearest neighbort r values
-        msg = "Flagging uncorrelated channels"
-        data_r_ch = self.flag_uncorrelated_channels(message=msg)
+            # 5. Filtering
+            self.filter(message="Filtering")
 
-        # 7. Identify bridged channels
-        self.flag_bridged_channels(data_r_ch, message="Flagging Bridged channels")
+            if picks == "eeg":
+                # These steps are relevant only for EEG. For example,
+                # MEG channels don't get bridged or high impedance.
+                # Further, MEG doesn't have a montage so
+                # flag_uncorrelated_channels would crash. We could use
+                # mne.channels.read_layout() for MEG channel if we need
+                # at some point to implement such a functionality. But it
+                # seems irrelevant.
 
-        # 8. Flag rank channels
-        self.flag_rank_channel(data_r_ch, message="Flagging the rank channel")
+                # 6. calculate nearest neighbort r values
+                msg = "Flagging uncorrelated channels"
+                data_r_ch = self.flag_uncorrelated_channels(message=msg, picks=picks)
 
-        # 9. Calculate nearest neighbour R values for epochs
-        self.flag_uncorrelated_epochs(message="Flagging Uncorrelated epochs")
+                # 7. Identify bridged channels
+                msg = "Flagging Bridged channels"
+                self.flag_bridged_channels(data_r_ch, message=msg)
 
-        # 10. Run ICA
-        self.run_ica("run1", message="Running Initial ICA")
+            # 8. Flag rank channels
+            self.flag_rank_channel(data_r_ch, message="Flagging the rank channel")
 
-        # 11. Calculate IC SD
-        self.flag_noisy_ics(message="Flagging time periods with noisy IC's.")
+            if picks == "eeg":
+                # 9. Calculate nearest neighbour R values for epochs
+                msg = "Flagging Uncorrelated epochs"
+                self.flag_uncorrelated_epochs(message=msg, picks=picks)
 
-        # 12. TODO: integrate labels from IClabels to self.flags["ic"]
-        self.run_ica("run2", message="Running Final ICA and ICLabel.")
+            if self.config["ica"] is None:
+                # Skip ICA steps.
+                continue
+
+            # 10. Run ICA
+            self.run_ica("run1", message="Running Initial ICA", picks=picks)
+
+            # 11. Calculate IC SD
+            msg = "Flagging time periods with noisy IC's."
+            self.flag_noisy_ics(message=msg, picks=picks)
+
+            # 12. TODO: integrate labels from IClabels to self.flags["ic"]
+            msg = "Running Final ICA and ICLabel."
+            self.run_ica("run2", message=msg, picks=picks)
 
     def run_dataset(self, paths):
         """Run a full dataset.
@@ -1191,9 +1435,20 @@ class LosslessPipeline:
         for path in paths:
             self.run(path)
 
-    # TODO: Finish docstring
     def load_ll_derivative(self, derivatives_path):
-        """Load a completed pylossless derivative state."""
+        """Load a completed pylossless derivative state.
+
+        Parameters
+        ----------
+        derivatives_path : str | mne_bids.BIDSPath
+            Path to a saved pylossless derivatives.
+
+        Returns
+        -------
+        :class:`~pylossless.pipeline.LosslessPipeline`
+            Returns an instance of :class:`~pylossless.pipeline.LosslessPipeline`
+            for the loaded pylossless derivative state.
+        """
         if not isinstance(derivatives_path, BIDSPath):
             derivatives_path = get_bids_path_from_fname(derivatives_path)
         self.raw = mne_bids.read_raw_bids(derivatives_path)
@@ -1225,7 +1480,7 @@ class LosslessPipeline:
         self.flags["ch"].load_tsv(flagged_chs_fpath.fpath)
 
         # Load Flagged Epochs
-        self.flags["epoch"].load_from_raw(self.raw)
+        self.flags["epoch"].load_from_raw(self.raw, self.get_events(), self.config)
 
         return self
 
@@ -1238,3 +1493,45 @@ class LosslessPipeline:
         return bids_path.copy().update(
             suffix=lossless_suffix, root=lossless_root, check=False
         )
+
+    def get_all_event_ids(self):
+        """
+        Get a combined event ID dictionary from existing markers and raw annotations.
+
+        Returns
+        -------
+        dict or None
+            A combined dictionary of event IDs, including both existing markers
+            and new ones from annotations.
+            Returns ``None`` if no events or annotations are found.
+        """
+        try:
+            # Get existing events and their IDs
+            event_id = mne.events_from_annotations(self.raw)[1]
+        except ValueError as e:
+            warn(f"Warning: No events found in raw data. Error: {e}")
+            event_id = {}
+
+        # Check if there are any annotations
+        if len(self.raw.annotations) == 0 and not event_id:
+            warn("Warning: No events or annotations found in the raw data.")
+            return
+
+        # Initialize the combined event ID dictionary with existing events
+        combined_event_id = event_id.copy()
+
+        # Determine the starting ID for new annotations
+        start_id = max(combined_event_id.values()) + 1 if combined_event_id else 1
+
+        # Get unique annotations and add new event IDs
+        for desc in set(self.raw.annotations.description):
+            if desc not in combined_event_id:
+                combined_event_id[desc] = start_id
+                start_id += 1
+
+        # Final check to ensure we have at least one event
+        if not combined_event_id:
+            warn("Warning: No valid events or annotations could be processed.")
+            return
+
+        return combined_event_id
