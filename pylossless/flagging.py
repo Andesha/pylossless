@@ -85,18 +85,7 @@ class FlaggedChs(_Flagged):
 
     def __init__(self, *args, **kwargs):
         """Initialize class."""
-        super().__init__(*args, **kwargs)
-        self.ll = ll
-
-    def __repr__(self):
-        """Return a string representation of the FlaggedChs object."""
-        return (
-            f"Flagged channels: |\n"
-            f"  Noisy: {self.get('noisy', None)}\n"
-            f"  Bridged: {self.get('bridged', None)}\n"
-            f"  Uncorrelated: {self.get('uncorrelated', None)}\n"
-            f"  Rank: {self.get('rank', None)}\n"
-        )
+        super().__init__(CH_LABELS, "channel", *args, **kwargs)
 
     def add_flag_cat(self, kind, bad_ch_names, *args):
         """Store channel names that have been flagged by pipeline.
