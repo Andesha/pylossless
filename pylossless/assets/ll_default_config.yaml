@@ -1,0 +1,109 @@
+######################### General properties #########################
+#ref_loc_file: derivatives/pylossless/code/misc/standard_1020_ll_ref19.elc
+#montage_info: [0.0, -16.0, 0.0, -0.02, 0.0, -1.58, 10.7, 11.5, 11.5]
+
+################## General info about the project ####################
+project:
+  readme: "# Description of the dataset"
+
+  # Montage use to make file BIDS compliant.
+  # Can be path to digitized montage OR a string of one of mne's built in
+  # standard montages as specified by mne.channels.get_builtin_montages().
+  # Can be left empty if the input dataset is already in BIDS format.
+  bids_montage: GSN-HydroCel-129
+
+  # montage used while running the lossless pipeline.
+  # if empty, the pipeline will use the electrodes.tsv sidecar file, if created
+  # during the BIDS conversion.
+  # If specified, needs to be a string of one of mne's built in standard montages.
+  analysis_montage: ""
+
+  set_montage_kwargs: {}
+
+  coordsys:
+    EEGCoordinateSystem: Other
+    EEGCoordinateUnits: metres
+
+######################## Task break detection ########################
+# See arguments definition from mne.preprocessing.annotate_breaks
+find_breaks:
+
+############################## epoching ##############################
+epoching:
+  overlap: 0
+
+  # See arguments definition from mne.Epochs
+  epochs_args:
+    baseline: null
+    tmax: 1
+    tmin: 0
+
+########################### EEG filtering ############################
+# See arguments definition from mne.io.Raw.filter & mne.io.Raw.notch_filter
+filtering:
+  filter_args:
+    h_freq: 100
+    l_freq: 1
+  notch_filter_args:
+    freqs: [60]
+
+########################## Nearest neighbor ##########################
+nearest_neighbors:
+  n_nbr_ch: 3
+  n_nbr_epoch: 3
+
+####################### Pipeline steps config ########################
+bridged_channels:
+  bridge_trim: 40
+  bridge_z: 6
+
+noisy_channels:
+  flag_crit: 0.2
+  outlier_method: quantile
+  outliers_kwargs:
+    k: 6
+    lower: 0.25
+    upper: 0.75
+
+uncorrelated_channels:
+  flag_crit: 0.2
+  outlier_method: quantile
+  outliers_kwargs:
+    k: 6
+    lower: 0.25
+    upper: 0.75
+
+noisy_epochs:
+  flag_crit: 0.2
+  outlier_method: quantile
+  outliers_kwargs:
+    k: 6
+    lower: 0.25
+    upper: 0.75
+
+uncorrelated_epochs:
+  flag_crit: 0.2
+  outlier_method: quantile
+  outliers_kwargs:
+    k: 6
+    lower: 0.25
+    upper: 0.75
+
+################################ ICA #################################
+ica:
+  noisy_ic_epochs:
+    flag_crit: 0.2
+    outlier_method: quantile
+    outliers_kwargs:
+      k: 6
+      lower: 0.25
+      upper: 0.75
+
+  # See arguments definition from mne.preprocessing.ICA
+  ica_args:
+    run1:
+      method: fastica
+    run2:
+      method: infomax
+      fit_params:
+        extended: True
