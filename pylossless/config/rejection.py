@@ -150,6 +150,9 @@ class RejectionPolicy(ConfigMixin):
         elif self["ch_cleaning_mode"] == "interpolate":
             raw.interpolate_bads(**self["interpolate_bads_kwargs"])
 
+        # After rejecting sources you have to recompute the average reference
+        raw = raw.set_eeg_reference('average')
+
         # Clean the epochs
         # TODO: Not sure where we landed on having these prefixed as bad_
         #       or not by the pipeline. If not prefixed, this would be the
@@ -167,6 +170,9 @@ class RejectionPolicy(ConfigMixin):
             flagged_ics = flagged_ics.index.tolist()
             pipeline.ica2.exclude.extend(flagged_ics)
             pipeline.ica2.apply(raw)
+
+        # After rejecting sources you have to recompute the average reference
+        raw = raw.set_eeg_reference('average')
 
         if return_ica:
             return raw, pipeline.ica2
