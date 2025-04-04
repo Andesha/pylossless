@@ -153,6 +153,7 @@ def _detect_outliers(
     flag_crit=0.2,
     init_dir="both",
     outliers_kwargs=None,
+    plot_diagnostic=True,
 ):
     """Mark epochs, channels, or ICs as flagged for artefact.
 
@@ -180,6 +181,9 @@ def _detect_outliers(
         Set in the pipeline config. 'k', 'lower', and 'upper' kwargs can be
         passed to _get_outliers_quantile. 'k' can also be passed to
         _get_outliers_trimmed.
+    plot_diagnostic : bool
+        If True, plot the voltage variance diagnostic plots of the criteria 
+        function.
 
     Returns
     -------
@@ -224,7 +228,29 @@ def _detect_outliers(
     prop_outliers = outlier_mask.astype(float).mean(operate_dim)
     if "quantile" in list(prop_outliers.coords.keys()):
         prop_outliers = prop_outliers.drop_vars("quantile")
-    return prop_outliers[prop_outliers > flag_crit].coords.to_index().values
+    flagged_items = prop_outliers[prop_outliers > flag_crit].coords.to_index().values
+
+    # Diagnostic plotting
+    if plot_diagnostic:
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+        ax[0].plot(prop_outliers)
+        ax[0].set_title("Proportion of Outliers")
+        ax[0].set_xlabel("Epoch")
+        ax[0].set_ylabel("Proportion")
+
+        ax[1].plot(l_out, color="red", label="Lower bound")
+        ax[1].plot(u_out, color="blue", label="Upper bound")
+        ax[1].set_title("Outlier Bounds")
+        ax[1].set_xlabel("Epoch")
+        ax[1].set_ylabel("Value")
+        ax[1].legend()
+
+        plt.show()
+
+    raise ValueError("Diagnostic plotting not implemented yet")
+
+    return flagged_items
 
 
 def find_bads_by_threshold(epochs, threshold=5e-5):
