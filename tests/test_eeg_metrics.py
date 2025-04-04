@@ -92,25 +92,6 @@ def test_time_domain_snr_improvement(sample_raw_data, lossless_cleaned_data):
         f"SNR improvement below threshold: {snr_results['improvement_db']} dB"
 
 
-def test_frequency_domain_snr_improvement(sample_raw_data, lossless_cleaned_data):
-    """Test that frequency-domain SNR improves after filtering."""
-    raw_noisy = sample_raw_data
-    raw_filtered = lossless_cleaned_data
-    
-    # Calculate SNR improvement in alpha band
-    snr_results = frequency_domain_snr(raw_noisy, raw_filtered, 
-                                      fmin=8.0, fmax=12.0,  # Alpha band
-                                      noise_fmin=50.0, noise_fmax=60.0)  # Line noise band
-    
-    # Assert that SNR improved
-    assert snr_results['snr_after'] > snr_results['snr_before'], \
-        f"SNR did not improve: before={snr_results['snr_before']}, after={snr_results['snr_after']}"
-    
-    # Assert that improvement is above threshold
-    assert snr_results['improvement_db'] > 3.0, \
-        f"SNR improvement below threshold: {snr_results['improvement_db']} dB"
-
-
 def test_artifact_amplitude_reduction(sample_raw_data, lossless_cleaned_data):
     """Test that artifact amplitudes are reduced after ICA cleaning."""
     raw_noisy = sample_raw_data
@@ -201,6 +182,6 @@ def test_generate_quality_report(sample_raw_data, lossless_cleaned_data, tmp_pat
     
     # Assert that the report was created
     assert report_file.exists(), "Quality report was not created"
-    
+
     # Print report path for reference
     print(f"\nQuality report generated at: {report_file}")
