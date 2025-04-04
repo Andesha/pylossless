@@ -142,3 +142,5 @@ project_ll_config_face13_egi.yaml
 
 # Testing file
 test.py
+*.edf
+*.fif
