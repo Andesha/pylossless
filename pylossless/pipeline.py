@@ -233,22 +233,57 @@ def _detect_outliers(
     # Diagnostic plotting
     if plot_diagnostic:
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-        ax[0].plot(prop_outliers)
-        ax[0].set_title("Proportion of Outliers")
-        ax[0].set_xlabel("Epoch")
-        ax[0].set_ylabel("Proportion")
+        
+        # Create figure with 4 panels in specific layout
+        fig = plt.figure(figsize=(12, 8))
+        
+        # Calculate median values for plotting
+        mid_val = array.quantile(0.5, dim=flag_dim)
+        
+        # Panel A: Voltage Variance (uV)
+        ax1 = plt.subplot2grid((2, 2), (0, 0))
+        im = ax1.imshow(array.T, aspect='auto', cmap='viridis') # , vmin=0, vmax=700
+        ax1.set_ylabel('Channels')
+        plt.colorbar(im, ax=ax1, label='Voltage Variance (uV)')
+        ax1.text(-0.1, 1.1, 'A', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+        
+        # Panel B: Voltage Variance scatter plot
+        ax2 = plt.subplot2grid((2, 2), (1, 0))
+        # Reshape array to 1D for scatter plot
+        x_coords = np.repeat(array.coords[operate_dim], len(array.coords[flag_dim]))
+        y_vals = array.values.flatten()
+        ax2.scatter(x_coords, y_vals, color='red', marker='+', alpha=0.5, s=20)
+        ax2.plot(array.coords[operate_dim], mid_val, color='black', label='Median')
+        ax2.fill_between(array.coords[operate_dim], l_out, u_out, color='gray', alpha=0.3, label='Quantiles (30%,70%)')
+        ax2.plot(array.coords[operate_dim], l_out, color='blue', label='6x Median-Quantile Distance')
+        ax2.plot(array.coords[operate_dim], u_out, color='blue')
+        ax2.set_ylabel('Voltage Variance (uV)')
+        ax2.legend(loc='lower right')
+        ax2.text(-0.1, 1.1, 'B', transform=ax2.transAxes, fontsize=12, fontweight='bold')
+        
+        # Panel C: Flagging Criteria
+        ax3 = plt.subplot2grid((2, 2), (0, 1))
+        im2 = ax3.imshow(outlier_mask.T, aspect='auto', cmap='YlOrBr', vmin=0, vmax=1)
+        ax3.set_ylabel('Channels')
+        plt.colorbar(im2, ax=ax3, label='Flagging Criteria')
+        ax3.text(-0.1, 1.1, 'C', transform=ax3.transAxes, fontsize=12, fontweight='bold')
+        
+        # Panel D: Critical Cut-off
+        ax4 = plt.subplot2grid((2, 2), (1, 1))
+        ax4.plot(prop_outliers, range(len(prop_outliers)), 'b-')
+        ax4.axvline(flag_crit, color='r', linestyle='--', label=f'Critical Cut-off ({flag_crit})')
+        ax4.set_xlabel('Critical Cut-off')
+        ax4.set_ylim(ax4.get_ylim()[::-1])  # Invert y-axis
+        ax4.text(-0.1, 1.1, 'D', transform=ax4.transAxes, fontsize=12, fontweight='bold')
+        
+        # Shared x-axis label
+        fig.text(0.5, 0.02, 'Time (points)', ha='center')
 
-        ax[1].plot(l_out, color="red", label="Lower bound")
-        ax[1].plot(u_out, color="blue", label="Upper bound")
-        ax[1].set_title("Outlier Bounds")
-        ax[1].set_xlabel("Epoch")
-        ax[1].set_ylabel("Value")
-        ax[1].legend()
+        # Set title for the entire figure
+        fig.suptitle(flagged_items, fontsize=14, fontweight='bold')
 
+        plt.tight_layout()
         plt.show()
-
-    raise ValueError("Diagnostic plotting not implemented yet")
 
     return flagged_items
 
