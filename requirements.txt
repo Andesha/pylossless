@@ -10,3 +10,4 @@ mne_icalabel>=0.6.0
 xarray
 numpy<2
 edfio
+pytest
