@@ -74,6 +74,11 @@ def lossless_cleaned_data(sample_raw_data, sample_data_config):
     return cleaned_raw, pipeline.ica2
 
 
+def test_pipeline_running(lossless_cleaned_data):
+    """Really sparse test for shallowing checking if the pipeline is running"""
+    assert lossless_cleaned_data is not None
+
+
 # Define test functions
 def test_time_domain_snr_improvement(sample_raw_data, lossless_cleaned_data):
     """Test that time-domain SNR improves after ICA cleaning."""
