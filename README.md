@@ -13,32 +13,43 @@ This EEG processing pipeline is especially useful for the following scenarios:
   betweeen 1-30Hz, while another analysis can use 1-second epochs with no filter, etc.)
 - You want to be able to do a hands on review of the pre-processing results for each file.
 
-## Fork Description
+Please find the full documentation at
+[**pylossless.readthedocs.io**](https://pylossless.readthedocs.io/en/latest/index.html).
+
+**NOTE**: This documentation refers to the original implementation and may have some slight differences compared to this fork. For now, issues can be opened here on GitHub if things appear to be incorrect/broken.
+
+### Fork Description
 
 This fork is maintained as a lightweight HPC-ready version of the original implementation.
 
-All credit to the original Authors.
+All credit to the original Authors and their repository [here](https://github.com/lina-usc/pylossless).
 
 
 ## 📘 Installation and usage instructions
 
-The development version can be installed from GitHub with
+To begin using the latest version, it is recommended to create a new virtual environment to install the package in. Assuming you have done so, proceed as follows:
 ```bash
-$ git clone https://github.com/Andesha/pylossless.git
-$ pip install ./pylossless
+git clone https://github.com/Andesha/pylossless.git
+pip install ./pylossless
 ```
 
-Please find the full documentation at
-[**pylossless.readthedocs.io**](https://pylossless.readthedocs.io/en/latest/index.html).
+### Running a simple build test
 
+If you are unsure if the pipeline has been set up correctly, you can run a simple test via the CLI from where you did the `pip install` via:
+```bash
+pytest -W ignore pylossless/tests/test_eeg_metrics.py::test_pipeline_running
+```
+
+If this passes, you can assume the pipeline is working and ready to go! If not, please open an issue on the issue tracker.
 
 ## ▶️ Running the pyLossless Pipeline
-Below is a minimal example that runs the pipeline one of MNE's sample files.  
+Below is a minimal example that runs the pipeline one of MNE's sample files. This example will return a warning that the sampling rate of the data is too low for ICLabel. This is an expected property of the sample data.
+
 ```python
 import pylossless as ll 
 import mne
 fname = mne.datasets.sample.data_path() / 'MEG' / 'sample' /  'sample_audvis_raw.fif'
-raw = mne.io.read_raw_fif(fname, preload=True)
+raw = mne.io.read_raw_fif(fname, preload=True).pick('eeg')
 
 config = ll.config.Config()
 config.load_default()
@@ -49,13 +60,9 @@ pipeline.run_with_raw(raw)
 
 Once it is completed, You can see what channels and times were flagged:
 ```python
-print(pipeline.flagged_chs)
-print(pipeline.flagged_epochs)
-```
-
-Once you are ready, you can save your file in its lossless state:
-```python
-pipeline.save(pipeline.get_derivative_path(bids_path), overwrite=True)
+print(pipeline.flags['ch'])
+print(pipeline.flags['ic'])
+print(pipeline.flags['epoch'])
 ```
 
 To get a **cleaned** version, you can use a `RejectionPolicy` object to apply
@@ -65,7 +72,7 @@ rejection_policy = ll.RejectionPolicy()
 cleaned_raw = rejection_policy.apply(pipeline)
 ```
 
-## ▶️ Example HPC Environment Setup
+### ▶️ Example HPC Environment Setup
 
 If you are a Canadian researcher working on an HPC system such as [Narval](https://docs.alliancecan.ca/wiki/Narval/en):
 
