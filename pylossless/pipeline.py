@@ -153,6 +153,7 @@ def _detect_outliers(
     flag_crit=0.2,
     init_dir="both",
     outliers_kwargs=None,
+    plot_diagnostic=False,
 ):
     """Mark epochs, channels, or ICs as flagged for artefact.
 
@@ -180,6 +181,8 @@ def _detect_outliers(
         Set in the pipeline config. 'k', 'lower', and 'upper' kwargs can be
         passed to _get_outliers_quantile. 'k' can also be passed to
         _get_outliers_trimmed.
+    plot_diagnostic : bool
+        If True, plot the variance diagnostic plots of the criteria function.
 
     Returns
     -------
@@ -224,7 +227,49 @@ def _detect_outliers(
     prop_outliers = outlier_mask.astype(float).mean(operate_dim)
     if "quantile" in list(prop_outliers.coords.keys()):
         prop_outliers = prop_outliers.drop_vars("quantile")
-    return prop_outliers[prop_outliers > flag_crit].coords.to_index().values
+    flagged_items = prop_outliers[prop_outliers > flag_crit].coords.to_index().values
+
+    # Diagnostic plotting
+    if plot_diagnostic:
+        import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(12, 8))
+        
+        # Panel A: Voltage Variance
+        ax1 = plt.subplot2grid((2, 2), (0, 0))
+        im = ax1.imshow(array.T, aspect='auto', cmap='viridis') # no transpose?
+        ax1.set_ylabel(flag_dim)
+        ax1.set_ylim(ax1.get_ylim()[::-1])  # Invert y-axis
+        
+        # Panel B: Voltage Variance scatter plot
+        ax2 = plt.subplot2grid((2, 2), (1, 0))
+        mid_val = array.quantile(0.5, dim=flag_dim)
+        x_coords = np.repeat(array.coords[operate_dim], len(array.coords[flag_dim]))
+        y_vals = array.values.flatten()
+        ax2.scatter(x_coords, y_vals, color='red', marker='+', alpha=0.5, s=20) # Plot the samples
+        ax2.plot(array.coords[operate_dim], mid_val, color='black', label='Median') # Plot median line
+        ax2.plot(array.coords[operate_dim], l_out, color='blue', label='Median-Quantile Distance')
+        ax2.plot(array.coords[operate_dim], u_out, color='blue')
+        ax2.set_ylabel('Variance')
+        ax2.set_xlabel('Time')
+        
+        # Panel C: Flagging Criteria
+        ax3 = plt.subplot2grid((2, 2), (0, 1))
+        im2 = ax3.imshow(outlier_mask.T, aspect='auto', cmap='YlOrBr', vmin=0, vmax=1)
+        ax3.set_ylim(ax3.get_ylim()[::-1])  # Invert y-axis
+        
+        # Panel D: Critical Cut-off
+        ax4 = plt.subplot2grid((2, 2), (1, 1))
+        ax4.plot(prop_outliers, range(len(prop_outliers)), 'b-')
+        ax4.axvline(flag_crit, color='r', linestyle='--', label=f'Critical Cut-off ({flag_crit})')
+        ax4.set_xlabel('Critical Cut-off')
+
+        # TODO: come up with an intelligent figure title showing what things are operating on
+        fig.suptitle(flag_dim, fontsize=14, fontweight='bold') # flagged_items
+
+        plt.tight_layout()
+        plt.show()
+
+    return flagged_items
 
 
 def find_bads_by_threshold(epochs, threshold=5e-5):
