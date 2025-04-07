@@ -318,8 +318,7 @@ def find_bads_by_threshold(epochs, threshold=5e-5):
     >>> epochs = mne.make_fixed_length_epochs(raw, preload=True)
     >>> bad_chs = ll.pipeline.find_bads_by_threshold(epochs)
     """
-    # TODO: We should make this function handle multiple channel types.
-    # TODO: but I'd like to avoid making a copy of the epochs object
+    
     ch_types = np.unique(epochs.get_channel_types()).tolist()
     if len(ch_types) > 1:
         warn(
@@ -802,7 +801,7 @@ class LosslessPipeline:
 
     def run_staging_script(self):
         """Run a staging script if specified in config."""
-        # TODO:
+
         if "staging_script" in self.config:
             staging_script = Path(self.config["staging_script"])
             if staging_script.exists():
@@ -879,7 +878,7 @@ class LosslessPipeline:
             else:
                 msg = f"No channels with standard deviation above {threshold} volts."
                 logger.info(msg)
-        else:  # TODO: Implement an annotate_bads_by_threshold for epochs
+        else:
             above_threshold = _threshold_volt_std(
                 epochs, flag_dim=flag_dim, threshold=threshold
             )
@@ -923,7 +922,7 @@ class LosslessPipeline:
         >>> epochs = mne.make_fixed_length_epochs(raw, preload=True)
         >>> chs_to_leave_out = pipeline.find_outlier_chs(epochs=epochs)
         """
-        # TODO: Reuse _detect_outliers here.
+        
         logger.info("🔍 Detecting channels to leave out of reference.")
         if epochs is None:
             epochs = self.get_epochs(rereference=False)
@@ -1058,8 +1057,7 @@ class LosslessPipeline:
         picks : str (default "eeg")
             Type of channels to pick.
         """
-        # TODO: flag "ch_sd" should be renamed "time_sd"
-        # TODO: doc for step 3 and 4 need to be updated
+
         epochs_xr = epochs_to_xr(self.get_epochs(picks=picks), kind="ch")
         data_sd = epochs_xr.std("time")
 
@@ -1306,8 +1304,6 @@ class LosslessPipeline:
             allow_preload=True,
             event_id=event_id,
         )
-        # TODO: address derivatives support in MNE bids.
-        # use shutils ( or pathlib?) to rename file with ll suffix
 
         # Save ICAs
         bpath = derivatives_path.copy()
@@ -1324,7 +1320,7 @@ class LosslessPipeline:
             extension=".tsv", suffix="iclabels", check=False
         )
         self.flags["ic"].save_tsv(iclabels_bidspath)
-        # TODO: epoch marks and ica marks are not currently saved into annots
+
         # raw.save(derivatives_path, overwrite=True, split_naming='bids')
         config_bidspath = bpath.update(
             extension=".yaml", suffix="ll_config", check=False
@@ -1380,7 +1376,6 @@ class LosslessPipeline:
         if save:
             self.save(self.get_derivative_path(bids_path), overwrite=overwrite)
 
-    # TODO: Finish docstring
     def run_with_raw(self, raw):
         """Execute pipeline on a raw object."""
         self.raw = raw
@@ -1465,7 +1460,7 @@ class LosslessPipeline:
             msg = "Flagging time periods with noisy IC's."
             self.flag_noisy_ics(message=msg, picks=picks)
 
-            # 12. TODO: integrate labels from IClabels to self.flags["ic"]
+            # 12. Run second ICA
             msg = "Running Final ICA and ICLabel."
             self.run_ica("run2", message=msg, picks=picks)
 
@@ -1527,7 +1522,6 @@ class LosslessPipeline:
 
         return self
 
-    # TODO: Finish docstring
     def get_derivative_path(self, bids_path, derivative_name="pylossless"):
         """Build derivative path for file."""
         lossless_suffix = bids_path.suffix if bids_path.suffix else ""
