@@ -264,6 +264,7 @@ def _detect_outliers(
         ax4.set_xlabel('Critical Cut-off')
 
         # TODO: come up with an intelligent figure title showing what things are operating on
+        # Seems to be something in the 'kind' part of the xarray dealie
         fig.suptitle(flag_dim, fontsize=14, fontweight='bold') # flagged_items
 
         plt.tight_layout()
