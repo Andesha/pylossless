@@ -153,7 +153,7 @@ def _detect_outliers(
     flag_crit=0.2,
     init_dir="both",
     outliers_kwargs=None,
-    plot_diagnostic=True,
+    plot_diagnostic=False,
 ):
     """Mark epochs, channels, or ICs as flagged for artefact.
 
@@ -182,8 +182,7 @@ def _detect_outliers(
         passed to _get_outliers_quantile. 'k' can also be passed to
         _get_outliers_trimmed.
     plot_diagnostic : bool
-        If True, plot the voltage variance diagnostic plots of the criteria 
-        function.
+        If True, plot the variance diagnostic plots of the criteria function.
 
     Returns
     -------
@@ -265,7 +264,7 @@ def _detect_outliers(
         ax4.set_xlabel('Critical Cut-off')
 
         # TODO: come up with an intelligent figure title showing what things are operating on
-        fig.suptitle(flagged_items, fontsize=14, fontweight='bold')
+        fig.suptitle(flag_dim, fontsize=14, fontweight='bold') # flagged_items
 
         plt.tight_layout()
         plt.show()
