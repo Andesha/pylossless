@@ -237,7 +237,7 @@ def _detect_outliers(
         # Panel A: Voltage Variance
         ax1 = plt.subplot2grid((2, 2), (0, 0))
         im = ax1.imshow(array.T, aspect='auto', cmap='viridis') # no transpose?
-        ax1.set_ylabel(flag_dim)
+        ax1.set_ylabel('Chs/ ICs')
         ax1.set_ylim(ax1.get_ylim()[::-1])  # Invert y-axis
         
         # Panel B: Voltage Variance scatter plot
