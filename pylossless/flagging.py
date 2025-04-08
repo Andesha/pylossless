@@ -19,7 +19,7 @@ from .utils._utils import _icalabel_to_data_frame
 
 IC_LABELS = mne_icalabel.config.ICA_LABELS_TO_MNE
 CH_LABELS: list = ["noisy", "bridged", "uncorrelated", "rank"]
-EPOCH_LABELS: list = ["noisy", "noisy_ICs", "uncorrelated"]
+EPOCH_LABELS: list = ["noisy", "noisy_ICs_1", "noisy_ICs_2", "uncorrelated"]
 
 
 class _Flagged(dict):
