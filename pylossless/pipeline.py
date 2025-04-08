@@ -594,7 +594,8 @@ class LosslessPipeline:
         lossless_flags = [
             "BAD_LL_noisy",
             "BAD_LL_uncorrelated",
-            "BAD_LL_noisy_ICs",
+            "BAD_LL_noisy_ICs_1",
+            "BAD_LL_noisy_ICs_2",
         ]
         flagged_times = _sum_flagged_times(self.raw, lossless_flags)
 
@@ -1255,13 +1256,15 @@ class LosslessPipeline:
             raise ValueError("The `run` argument must be 'run1' or 'run2'")
 
     @lossless_logger
-    def flag_noisy_ics(self, picks="eeg"):
+    def flag_noisy_ics(self, run_id, picks="eeg"):
         """Calculate the IC standard Deviation by epoch window.
 
         Flags windows with too many ICs with outlying standard deviations.
 
         Parameters
         ----------
+        run_id : int
+            Which pass of noisy_ic, i.e. ic_s_sd1 vs ic_s_sd2
         picks : str (default "eeg")
             Type of channels to pick.
         """
@@ -1274,7 +1277,7 @@ class LosslessPipeline:
         kwargs = self.config["ica"]["noisy_ic_epochs"]
         bad_epoch_inds = _detect_outliers(data_sd, flag_dim="epoch", **kwargs)
 
-        self.flags["epoch"].add_flag_cat("noisy_ICs", bad_epoch_inds, epochs)
+        self.flags["epoch"].add_flag_cat(f"noisy_ICs_{run_id}", bad_epoch_inds, epochs)
 
         # icsd_epoch_flags=padflags(raw, icsd_epoch_flags,1,'value',.5);
 
@@ -1456,13 +1459,17 @@ class LosslessPipeline:
             # 10. Run ICA
             self.run_ica("run1", message="Running Initial ICA", picks=picks)
 
-            # 11. Calculate IC SD
-            msg = "Flagging time periods with noisy IC's."
-            self.flag_noisy_ics(message=msg, picks=picks)
+            # 11. Calculate IC SD 1
+            msg = "Flagging time periods with noisy IC's in first ICA."
+            self.flag_noisy_ics(message=msg, run_id=1, picks=picks)
 
             # 12. Run second ICA
             msg = "Running Final ICA and ICLabel."
             self.run_ica("run2", message=msg, picks=picks)
+
+            # 13. Calculate IC SD 2
+            msg = "Flagging time periods with noisy IC's in second ICA."
+            self.flag_noisy_ics(message=msg, run_id=2, picks=picks)
 
     def run_dataset(self, paths):
         """Run a full dataset.
