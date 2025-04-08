@@ -144,3 +144,4 @@ project_ll_config_face13_egi.yaml
 test.py
 *.edf
 *.fif
+sandbox.ipynb
