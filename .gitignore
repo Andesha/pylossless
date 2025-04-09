@@ -140,9 +140,10 @@ project_ll_config_face13_egi.yaml
 # sphinx gallery
 ./docs/source/auto_examples/
 
-# Testing file
+# Testing files
 test.py
 *.edf
 *.fif
 sandbox.ipynb
 .local_reject
+derivatives
