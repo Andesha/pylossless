@@ -1281,6 +1281,23 @@ class LosslessPipeline:
 
         # icsd_epoch_flags=padflags(raw, icsd_epoch_flags,1,'value',.5);
 
+    def non_bids_save(self, subject_label, root_save_dir, overwrite=False, format="EDF", event_id=None):
+        """Forcibly saves the pipeline output skipping the derivative BIDS
+        path requirement. Will still write a passing derivative based on
+        given parameters.
+    
+        Parameters
+        ----------
+        subject_label : str
+            Subject ID to save the recording under.
+        root_save_dir : str
+            Where to begin creating the "derivatives" folder from
+        """
+        
+        forced_path = mne_bids.BIDSPath(subject=subject_label, task='pyl', root=root_save_dir)
+        forced_path = self.get_derivative_path(forced_path)
+        self.save(derivatives_path=forced_path, overwrite=overwrite, format=format, event_id=event_id)
+
     def save(self, derivatives_path=None, overwrite=False, format="EDF", event_id=None):
         """Save the file at the end of the pipeline.
 
