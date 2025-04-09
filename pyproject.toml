@@ -26,3 +26,48 @@ filterwarnings = ["error",
 "ignore:The current default of copy=False will change to copy=True in 1.7.",
 "ignore:You are using",
 ]
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pylossless"
+version = "0.2.0"
+description = "Lossless EEG Processing Pipeline Built on MNE and Dash"
+readme = "README.md"
+authors = [
+    { name = "Scott Huberty", email = "seh33@uw.edu" },
+    { name = "Christian O'Reilly", email = "christian.oreilly@sc.edu" },
+    { name = "James Desjardins", email = "jim.a.desjardins@gmail.com" },
+    { name = "Tyler Collins", email = "collins.tyler.k@gmail.com" }
+]
+license = { text = "MIT" }
+
+dependencies = [
+    "torch",
+    "mne>=1.7",
+    "mne-bids",
+    "pandas",
+    "scikit-learn",
+    "pyyaml",
+    "mne-icalabel>=0.6.0",
+    "xarray",
+    "numpy<2",
+    "edfio",
+    "pytest",
+]
+
+requires-python = ">=3.12"
+urls = { Homepage = "https://github.com/Andesha/pylossless" }
+
+[tool.setuptools]
+packages = ["pylossless"]
+include-package-data = true
+
+[project.optional-dependencies]
+qc = [
+    "jupyterlab",
+    "PyQt5",
+    "mne-qt-browser @ git+https://github.com/Andesha/mne-qt-browser.git@enable-qc"
+]
