@@ -321,7 +321,6 @@ class FlaggedICs(pd.DataFrame):
         self.fname = fname
         self.to_csv(fname, sep="\t", index=False, na_rep="n/a")
 
-    # TODO: Add parameters.
     def load_tsv(self, fname, data_frame=None):
         """Load flagged ICs from file."""
         self.fname = fname

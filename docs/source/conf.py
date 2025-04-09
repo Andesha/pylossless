@@ -72,11 +72,6 @@ intersphinx_mapping = {
 
 html_theme = "shibuya"
 html_static_path = ["_static"]
-# TODO: add a svg file for the logo
-# html_theme_options = {
-#    "light_logo": "logo-lightmode_color.png",
-#    "dark_logo": "logo_white.png",
-# }
 
 # user made CSS to customize look
 html_css_files = [

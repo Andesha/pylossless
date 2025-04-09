@@ -9,8 +9,6 @@ from pathlib import Path
 import yaml
 
 
-# TODO: Add parameters and references for below functions.
-# TODO: Add magic methods and constructors for this class.
 class ConfigMixin(dict):
     """Base configuration file class for pipeline procedures."""
 

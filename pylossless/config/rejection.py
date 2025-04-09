@@ -153,11 +153,6 @@ class RejectionPolicy(ConfigMixin):
         # After rejecting sources you have to recompute the average reference
         raw = raw.set_eeg_reference('average')
 
-        # Clean the epochs
-        # TODO: Not sure where we landed on having these prefixed as bad_
-        #       or not by the pipeline. If not prefixed, this would be the
-        #       step that add select types of flags as bad_ annotations.
-
         # Clean the ics
         ic_labels = pipeline.flags["ic"]
         mask = np.array([False] * len(ic_labels["confidence"]))

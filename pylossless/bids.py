@@ -9,7 +9,6 @@
 from mne_bids import BIDSPath, write_raw_bids
 
 
-# TODO: Add parameters and return.
 def get_bids_path(bids_path_kwargs, datatype="eeg", bids_root="./bids_dataset"):
     """Get BIDS path from BIDS recording."""
     if "datatype" not in bids_path_kwargs:
@@ -20,7 +19,6 @@ def get_bids_path(bids_path_kwargs, datatype="eeg", bids_root="./bids_dataset"):
     return BIDSPath(**bids_path_kwargs)
 
 
-# TODO: Add parameters and return.
 def get_dataset_bids_path(bids_path_args, datatype="eeg", bids_root="./bids_dataset"):
     """Getter method for BIDS path from BIDS dataset."""
     return [

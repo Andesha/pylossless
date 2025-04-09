@@ -506,8 +506,6 @@ def warp_locs(self, raw):
     if "montage_info" in self.config["replace_string"]:
         if isinstance(self.config["replace_string"]["montage_info"], str):
             pass
-            # TODO: if it is a BIDS channel tsv, load the tsv,sd_t_f_vals
-            # else read the file that is assumed to be a transformation matrix.
         else:
             pass
             # raw = (warp_locs(raw, c01_config['ref_loc_file'],
