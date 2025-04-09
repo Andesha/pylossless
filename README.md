@@ -35,9 +35,9 @@ pip install ./pylossless
 
 ### Running a simple build test
 
-If you are unsure if the pipeline has been set up correctly, you can run a simple test via the CLI from where you did the `pip install` via:
+If you are unsure if the pipeline has been set up correctly, you can run a simple test via the CLI from within the pylossless folder via:
 ```bash
-pytest -W ignore pylossless/tests/test_eeg_metrics.py::test_pipeline_running
+pytest -W ignore tests/test_eeg_metrics.py::test_pipeline_running
 ```
 
 If this passes, you can assume the pipeline is working and ready to go! If not, please open an issue on the issue tracker.
