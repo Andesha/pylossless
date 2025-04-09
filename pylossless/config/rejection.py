@@ -52,7 +52,12 @@ class RejectionPolicy(ConfigMixin):
         If ``True``, subtracts the signal accounted for by the flagged ICs
         from the ``raw`` object, via :meth:`~mne.preprocessing.ICA.apply`.
         If ``False``, does nothing. Defaults to ``True``.
-
+    post_filter_l_freq : float
+        If provided, will apply a low-pass filter to the data after cleaning.
+        Defaults to ``None``.
+    post_filter_h_freq : float
+        If provided, will apply a high-pass filter to the data after cleaning.
+        Defaults to ``None``.
     """
 
     def __init__(
@@ -65,6 +70,8 @@ class RejectionPolicy(ConfigMixin):
         ch_cleaning_mode=None,
         interpolate_bads_kwargs=None,
         remove_flagged_ics=True,
+        post_filter_l_freq=None,
+        post_filter_h_freq=None,
     ):
         if ch_flags_to_reject == "all":
             ch_flags_to_reject = ["noisy", "uncorrelated", "bridged"]
@@ -75,12 +82,6 @@ class RejectionPolicy(ConfigMixin):
         if interpolate_bads_kwargs is None:
             interpolate_bads_kwargs = {}
 
-        if config_fname is not None:
-            config = ConfigMixin().read(config_fname)
-            for key, value in config.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-
         super().__init__(
             config_fname=config_fname,
             ch_flags_to_reject=ch_flags_to_reject,
@@ -89,7 +90,15 @@ class RejectionPolicy(ConfigMixin):
             ch_cleaning_mode=ch_cleaning_mode,
             interpolate_bads_kwargs=interpolate_bads_kwargs,
             remove_flagged_ics=remove_flagged_ics,
+            post_filter_l_freq=post_filter_l_freq,
+            post_filter_h_freq=post_filter_h_freq,
         )
+
+        if config_fname is not None:
+            config = ConfigMixin().read(config_fname)
+            for key, value in config.items():
+                if key in self:
+                    self[key] =  value
 
     def __repr__(self):
         """Return a summary of the RejectionPolicy object."""
@@ -101,6 +110,8 @@ class RejectionPolicy(ConfigMixin):
             f"  ic_rejection_threshold: {self['ic_rejection_threshold']}\n"
             f"  ch_cleaning_mode: {self['ch_cleaning_mode']}\n"
             f"  remove_flagged_ics: {self['remove_flagged_ics']}\n"
+            f"  post_filter_l_freq: {self['post_filter_l_freq']}\n"
+            f"  post_filter_h_freq: {self['post_filter_h_freq']}\n"
         )
 
     def apply(self, pipeline, return_ica=False, version_mismatch="raise"):
@@ -168,6 +179,13 @@ class RejectionPolicy(ConfigMixin):
 
         # After rejecting sources you have to recompute the average reference
         raw = raw.set_eeg_reference('average')
+
+        if self["post_filter_l_freq"] is not None:
+            print('filtering low')
+            raw.filter(l_freq=self["post_filter_l_freq"], h_freq=None)
+        if self["post_filter_h_freq"] is not None:
+            print('filtering high')
+            raw.filter(l_freq=None, h_freq=self["post_filter_h_freq"])
 
         if return_ica:
             return raw, pipeline.ica2
