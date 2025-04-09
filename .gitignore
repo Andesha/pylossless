@@ -145,3 +145,4 @@ test.py
 *.edf
 *.fif
 sandbox.ipynb
+.local_reject
