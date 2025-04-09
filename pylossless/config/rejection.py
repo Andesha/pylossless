@@ -75,12 +75,6 @@ class RejectionPolicy(ConfigMixin):
         if interpolate_bads_kwargs is None:
             interpolate_bads_kwargs = {}
 
-        if config_fname is not None:
-            config = ConfigMixin().read(config_fname)
-            for key, value in config.items():
-                if hasattr(self, key):
-                    setattr(self, key, value)
-
         super().__init__(
             config_fname=config_fname,
             ch_flags_to_reject=ch_flags_to_reject,
@@ -90,6 +84,12 @@ class RejectionPolicy(ConfigMixin):
             interpolate_bads_kwargs=interpolate_bads_kwargs,
             remove_flagged_ics=remove_flagged_ics,
         )
+
+        if config_fname is not None:
+            config = ConfigMixin().read(config_fname)
+            for key, value in config.items():
+                if key in self:
+                    self[key] =  value
 
     def __repr__(self):
         """Return a summary of the RejectionPolicy object."""
