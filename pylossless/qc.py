@@ -10,14 +10,32 @@ import numpy as np
 class QC:
     def __init__(self, ll_state, rejection_policy):
         self.ll_state = ll_state
-        self.raw = ll_state.raw
         self.rejection_policy = rejection_policy
 
+        artifact_types = ['eog', 'ecg', 'muscle', 'line_noise', 'channel_noise']
+        ic_flags = ll_state.flags['ic']
+        flagged_components = ic_flags[ic_flags['ic_type'].isin(artifact_types)].index.tolist()
+        self.ll_state.ica2.exclude.extend(flagged_components)
+
     def run(self):
+        start_time = time.time()
+
         self._plot_all_ic_topos(self.ll_state)
         self._plot_ic_scrollplot(self.ll_state)
 
-    def _plot_ic_scrollplot(self, ll_state, picks=None):
+        # Time taken to QC
+        end_time = time.time()
+        print(f"Time taken to QC: {end_time - start_time:.2f} seconds")
+
+        # Add some sort of post qc step that grabs .local_reject file and
+        # uses it to update the ll_state.ica2.exclude list
+        # local_reject_file = Path('.local_reject')
+        # if local_reject_file.exists():
+        #     with open(local_reject_file, 'r') as f:
+        #         contents = f.read()
+        #         print(contents)
+
+    def _plot_ic_scrollplot(self, ll_state):
         """
         Plot the scrolling time course of Independent Components (ICs).
         
@@ -78,21 +96,21 @@ class QC:
         def get_bad_components():
             with open(local_reject_file, 'r') as f:
                 lines = f.readlines()
-                if len(lines) < 2:
+                if len(lines) < 3:
                     return 0, 0, set()
                 
-                # Get time range from first line
+                # Get time range from second line
                 try:
-                    xmin, xmax = map(float, lines[0].strip().split(','))
+                    xmin, xmax = map(float, lines[1].strip().split(','))
                 except:
                     xmin, xmax = 0, 0
                     
-                # Get bad components from second line
-                if not lines[1].strip():
+                # Get bad components from third line
+                if not lines[2].strip():
                     return xmin, xmax, set()
                 
                 # Clean up the set string and parse components
-                set_str = lines[1].strip()
+                set_str = lines[2].strip()
                 # Remove the outer set brackets and any newlines
                 set_str = set_str.strip('{}').strip()
                 # Split by comma and clean up each component
