@@ -46,10 +46,9 @@ class QC:
         """
         self.ll_state.ica2.exclude = self.post_qc_bads_ids
 
-        # cleaned_raw = rejection_policy.apply(pipeline)
+        cleaned_raw = self.rejection_policy.apply(self.ll_state)
 
-        #TODO: do the saving and moving stuff around
-        return
+        return cleaned_raw
 
     def run(self):
         """
@@ -84,7 +83,6 @@ class QC:
             set_str = contents[2].strip('{}').strip()
             self.post_qc_bads = [comp.strip().strip("'") for comp in set_str.split(',') if comp.strip()]
             self.post_qc_bads_ids = [int(comp.replace('ICA', '')) for comp in self.post_qc_bads]
-        raise ValueError(self.post_qc_bads, self.post_qc_bads_ids)
 
     def _plot_ic_scrollplot(self):
         """
