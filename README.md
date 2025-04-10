@@ -33,6 +33,18 @@ git clone https://github.com/Andesha/pylossless.git
 pip install ./pylossless
 ```
 
+### Installing the Quality Control dependencies
+
+This package also of course supports expert review via a Quality Control (QC) process.
+
+To install the package so that QCing is possible do the following at install time:
+```bash
+git clone https://github.com/Andesha/pylossless.git
+pip install ./pylossless[qc]
+```
+
+NOTE: This can also be done after installing just the basic version as above.
+
 ### Running a simple build test
 
 If you are unsure if the pipeline has been set up correctly, you can run a simple test via the CLI from within the pylossless folder via:
@@ -65,11 +77,35 @@ print(pipeline.flags['ic'])
 print(pipeline.flags['epoch'])
 ```
 
+Saving the pipeline can be done as a BIDS derivative if you are working within that structure, or more simply, you can forcibly save the subject at any given directory level via:
+
+```python
+pipeline.non_bids_save('1', '.', overwrite=True)
+```
+
+This example will save the subject as "sub-1" and create a new derivatives folder at `'.'`, meaning the current working directory.
+
 To get a **cleaned** version, you can use a `RejectionPolicy` object to apply
 these annotations to your raw object. This is a lossy operation:
 ```python
 rejection_policy = ll.RejectionPolicy()
 cleaned_raw = rejection_policy.apply(pipeline)
+```
+
+### Launching the Quality Control procedure
+
+The following example will launch the beta version of QCing from this fork. Replace the path to the sample with your own file.
+
+Components can be clicked on the topo plot to zoom in, and when rejecting components from the scroll plot, the effect on the scalp data will be illustrated.
+
+```python
+pipeline = ll.LosslessPipeline()
+pipeline = pipeline.load_ll_derivative('derivatives/pylossless/sub-1/eeg/sub-1_task-pyl_eeg.edf')
+
+rejection_policy = ll.RejectionPolicy()
+review = ll.QC(pipeline, rejection_policy)
+review.run()
+cleaned_raw = review.apply_qc()
 ```
 
 ### ▶️ Example HPC Environment Setup
