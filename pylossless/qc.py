@@ -9,8 +9,19 @@ import numpy as np
 
 class QC:
     def __init__(self, ll_state, rejection_policy):
+        """
+        Initialize the QC class.
+
+        Args:
+            ll_state (ll.LosslessPipeline): The Lossless derivative state to QC
+            rejection_policy (dict): The rejection policy to use for the QC
+                Does not fully reject channels or ICs, but flags them as bads
+        """
+
         self.ll_state = ll_state
         self.rejection_policy = rejection_policy
+        self.post_qc_bads = []
+        self.post_qc_bads_ids = []
 
         # Add channels to be rejected as bads
         for key in self.rejection_policy["ch_flags_to_reject"]:
@@ -29,7 +40,31 @@ class QC:
         if not flagged_ics.empty:
             self.ll_state.ica2.exclude.extend(flagged_ics.index.tolist())
         
+    def apply_qc(self):
+        """
+        Apply the QC to the Lossless state.
+        """
+        self.ll_state.ica2.exclude = self.post_qc_bads_ids
+
+        # cleaned_raw = rejection_policy.apply(pipeline)
+
+        #TODO: do the saving and moving stuff around
+        return
+
     def run(self):
+        """
+        Run the QC process.
+
+        Plots the scrolling time course of Independent Components (ICs).
+        Plots topographical maps for all ICs from a Lossless state.
+        Creates and monitors a .local_reject file for bad components.
+        Clicking on any IC will open it in a new figure window.
+        Text will be shown in red for components marked as artifacts.
+
+        Class attributes are updated with the post-QC bads.
+
+        To apply changes to the Lossless state, call apply_qc().
+        """
         start_time = time.time()
 
         self._plot_all_ic_topos()
@@ -41,11 +76,15 @@ class QC:
 
         # Add some sort of post qc step that grabs .local_reject file and
         # uses it to update the ll_state.ica2.exclude list
-        # local_reject_file = Path('.local_reject')
-        # if local_reject_file.exists():
-        #     with open(local_reject_file, 'r') as f:
-        #         contents = f.read()
-        #         print(contents)
+        local_reject_file = Path('.local_reject')
+        if local_reject_file.exists():
+            with open(local_reject_file, 'r') as f:
+                contents = f.read().splitlines()
+            print('Components to reject after QC:', contents[2])
+            set_str = contents[2].strip('{}').strip()
+            self.post_qc_bads = [comp.strip().strip("'") for comp in set_str.split(',') if comp.strip()]
+            self.post_qc_bads_ids = [int(comp.replace('ICA', '')) for comp in self.post_qc_bads]
+        raise ValueError(self.post_qc_bads, self.post_qc_bads_ids)
 
     def _plot_ic_scrollplot(self):
         """
