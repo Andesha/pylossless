@@ -58,6 +58,7 @@ bridged_channels:
   bridge_z: 6
 
 noisy_channels:
+  plot_diagnostic: False
   flag_crit: 0.2
   outlier_method: quantile
   outliers_kwargs:
@@ -74,6 +75,7 @@ uncorrelated_channels:
     upper: 0.75
 
 noisy_epochs:
+  plot_diagnostic: False
   flag_crit: 0.2
   outlier_method: quantile
   outliers_kwargs:
@@ -92,6 +94,7 @@ uncorrelated_epochs:
 ################################ ICA #################################
 ica:
   noisy_ic_epochs:
+    plot_diagnostic: False
     flag_crit: 0.2
     outlier_method: quantile
     outliers_kwargs:
