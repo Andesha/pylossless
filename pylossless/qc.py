@@ -12,16 +12,28 @@ class QC:
         self.ll_state = ll_state
         self.rejection_policy = rejection_policy
 
-        artifact_types = ['eog', 'ecg', 'muscle', 'line_noise', 'channel_noise']
-        ic_flags = ll_state.flags['ic']
-        flagged_components = ic_flags[ic_flags['ic_type'].isin(artifact_types)].index.tolist()
-        self.ll_state.ica2.exclude.extend(flagged_components)
+        # Add channels to be rejected as bads
+        for key in self.rejection_policy["ch_flags_to_reject"]:
+            if key in self.ll_state.flags["ch"]:
+                self.ll_state.raw.info["bads"] += self.ll_state.flags["ch"][key].tolist()
+        self.ll_state.raw.load_data()
+        self.ll_state.raw = self.ll_state.raw.set_eeg_reference('average')
 
+        # Add ICs to be rejected
+        ic_labels = self.ll_state.flags["ic"]
+        mask = np.array([False] * len(ic_labels["confidence"]))
+        for label in self.rejection_policy["ic_flags_to_reject"]:
+            mask |= ic_labels["ic_type"] == label
+        mask &= ic_labels["confidence"] > self.rejection_policy["ic_rejection_threshold"]
+        flagged_ics = ic_labels.loc[mask]
+        if not flagged_ics.empty:
+            self.ll_state.ica2.exclude.extend(flagged_ics.index.tolist())
+        
     def run(self):
         start_time = time.time()
 
-        self._plot_all_ic_topos(self.ll_state)
-        self._plot_ic_scrollplot(self.ll_state)
+        self._plot_all_ic_topos()
+        self._plot_ic_scrollplot()
 
         # Time taken to QC
         end_time = time.time()
@@ -35,7 +47,7 @@ class QC:
         #         contents = f.read()
         #         print(contents)
 
-    def _plot_ic_scrollplot(self, ll_state):
+    def _plot_ic_scrollplot(self):
         """
         Plot the scrolling time course of Independent Components (ICs).
         
@@ -46,12 +58,12 @@ class QC:
         """
         
         # Plot scrolling time course with optimizations
-        ll_state.ica2.plot_sources(ll_state.raw,
+        self.ll_state.ica2.plot_sources(self.ll_state.raw,
                                 start=0, show=True,
                                 title='IC Time Courses',
                                 block=True)
 
-    def _plot_all_ic_topos(self, ll_state):
+    def _plot_all_ic_topos(self):
         """
         Plot topographical maps for all ICs from a Lossless state.
         Creates and monitors a .local_reject file for bad components.
@@ -78,19 +90,16 @@ class QC:
                     print(f"Error monitoring file: {e}")
 
         # Get the number of ICs
-        n_components = ll_state.ica2.n_components_
+        n_components = self.ll_state.ica2.n_components_
         
         # Create initial file with known bad components
-        bad_components = set()
-        if hasattr(ll_state, 'flags') and 'ic' in ll_state.flags:
-            ic_flags = ll_state.flags['ic']
-            artifact_types = ['eog', 'ecg', 'muscle', 'line_noise', 'channel_noise']
-            bad_components = {f'ICA{str(x).zfill(3)}' for x in ic_flags[ic_flags['ic_type'].isin(artifact_types)].index}
+        bad_components = self.ll_state.ica2.exclude
         
         local_reject_file = Path('.local_reject')
         with open(local_reject_file, 'w') as f:
-            f.write("0,0\n")  # First line is time range
-            f.write(str(bad_components))  # Second line is bad components
+            f.write(f"pylossless-qc-reference\n")  # First line is label
+            f.write("0,0\n")  # Second line is time range
+            f.write(str({f'ICA{str(item).zfill(3)}' for item in bad_components}))  # Third line is bad components
         
         # Function to read bad components and time range from file
         def get_bad_components():
@@ -121,7 +130,7 @@ class QC:
         n_cols = 5
         n_rows = (n_components + 4) // 5
         
-        fig = ll_state.ica2.plot_components(
+        fig = self.ll_state.ica2.plot_components(
             picks=range(n_components),
             ch_type='eeg',
             title='IC Topographies',
@@ -137,8 +146,8 @@ class QC:
         bad_indices = {int(comp.replace('ICA', '')) for comp in bad_components}
         
         # Update component labels
-        if hasattr(ll_state, 'flags') and 'ic' in ll_state.flags:
-            ic_flags = ll_state.flags['ic']
+        if hasattr(self.ll_state, 'flags') and 'ic' in self.ll_state.flags:
+            ic_flags = self.ll_state.flags['ic']
             
             for idx in range(n_components):
                 ax = fig.axes[idx]
@@ -177,10 +186,10 @@ class QC:
                 print(f"Time: {timestamp:.2f}, Components: {components}")
             
             # Create a fresh copy of the full raw data each time and load it into memory
-            snap_state = ll_state.raw.copy().load_data()
+            snap_state = self.ll_state.raw.copy().load_data()
             # Apply ICA exclusions
-            ll_state.ica2.exclude = [int(comp.replace('ICA', '')) for comp in bad_components]
-            ll_state.ica2.apply(snap_state)
+            self.ll_state.ica2.exclude = [int(comp.replace('ICA', '')) for comp in bad_components]
+            self.ll_state.ica2.apply(snap_state)
             snap_state.set_eeg_reference('average')
             
             # Window the data after cleaning
@@ -190,13 +199,13 @@ class QC:
             fig, ax = plt.subplots(1, 1, figsize=(12, 10))
             
             # Calculate sample points more precisely
-            sfreq = ll_state.raw.info['sfreq']
+            sfreq = self.ll_state.raw.info['sfreq']
             start_idx = int(xmin * sfreq)
             end_idx = int(xmax * sfreq)
             
             # Extract data for the time window, ensuring we get the full range
             data = snap_state.get_data()  # Get all data from the cropped state
-            raw_data = ll_state.raw.get_data(start=start_idx, stop=end_idx)
+            raw_data = self.ll_state.raw.get_data(start=start_idx, stop=end_idx)
             
             # Create time arrays
             n_samples_clean = data.shape[1]
@@ -204,7 +213,7 @@ class QC:
             times = np.linspace(xmin, xmax, n_samples_clean)
             raw_times = np.linspace(xmin, xmax, n_samples_raw)
             
-            ch_names = ll_state.raw.ch_names
+            ch_names = self.ll_state.raw.ch_names
             n_channels = len(ch_names)
             
             # Create y-axis positions for the channels
@@ -261,12 +270,12 @@ class QC:
             if event.inaxes:
                 ax_idx = fig.axes.index(event.inaxes)
                 if ax_idx < n_components:
-                    new_fig = ll_state.ica2.plot_components(
+                    new_fig = self.ll_state.ica2.plot_components(
                         picks=[ax_idx],
                         ch_type='eeg',
                         show=False
                     )
-                    if hasattr(ll_state, 'flags') and 'ic' in ll_state.flags:
+                    if hasattr(self.ll_state, 'flags') and 'ic' in self.ll_state.flags:
                         if ax_idx in ic_flags.index:
                             ic_type = ic_flags.loc[ax_idx, 'ic_type']
                             confidence = ic_flags.loc[ax_idx, 'confidence']
