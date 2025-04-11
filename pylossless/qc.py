@@ -307,16 +307,13 @@ class QC:
             if event.inaxes:
                 ax_idx = fig.axes.index(event.inaxes)
                 if ax_idx < n_components:
-                    new_fig = self.ll_state.ica2.plot_components(
+                    # Create PSD plot for the component
+                    self.ll_state.ica2.plot_properties(
+                        self.ll_state.raw,
                         picks=[ax_idx],
-                        ch_type='eeg',
-                        show=False
+                        dB=True,
+                        plot_std=True
                     )
-                    if hasattr(self.ll_state, 'flags') and 'ic' in self.ll_state.flags:
-                        if ax_idx in ic_flags.index:
-                            ic_type = ic_flags.loc[ax_idx, 'ic_type']
-                            confidence = ic_flags.loc[ax_idx, 'confidence']
-                            new_fig.suptitle(f'IC{ax_idx} ({ic_type})\nconfidence: {confidence:.2f}')
                     plt.show()
 
         fig.canvas.mpl_connect('button_press_event', on_click)
