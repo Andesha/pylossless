@@ -284,6 +284,14 @@ class QC:
             ax.set_title('EEG Data Comparison (Raw vs Cleaned)')
             ax.grid(True)
             ax.legend().set_visible(False)
+
+            # Add key event handler for Escape key
+            def on_key(event):
+                if event.key == 'escape':
+                    plt.close(fig)
+            
+            fig.canvas.mpl_connect('key_press_event', on_key)
+            
             plt.tight_layout()
             plt.show()
             
