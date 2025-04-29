@@ -3,22 +3,51 @@
 
 ## Introduction to the Lossless Pipeline
 
-This EEG processing pipeline is especially useful for the following scenarios:
+The pyLossless pre-processing pipeline focuses on isolation of cortical signals from noise while retaining maximal information from the raw EEG data. The pipeline’s goal is to ensure minimal data manipulation and enhance signal quality annotations. This provides researchers with a scalable solution for handling large datasets across multiple EEG recording conditions. Particular attention has also been given to making the package easy to run for researchers just beginning their journey into working with large datasets in a High Performance Computing (HPC) environment.
 
-- You want to keep your EEG data in a continuous state, allowing you the flexibility to
-  epoch your data at a later stage.
-- You are part of a research team or community that shares a common dataset, and you
-  want to process the data once in a way that can be used for multiple analyses (i.e.,
-  one analysis can segment the cleaned data into 10-second epochs and filter the data
-  betweeen 1-30Hz, while another analysis can use 1-second epochs with no filter, etc.)
-- You want to be able to do a hands on review of the pre-processing results for each file.
+### Critical assumptions of the pipeline's approach
 
+The following are the theoretical assumptions and foundations:
+
+* Independent component analysis (ICA) for removal of artifacts is extremely effective at cleaning data
+* ICA algorithms fall appart when there is non-stationarity (wild variance) in the data
+* The pipeline should seek to eliminate these times/sources to improve ICA outcomes
+* Raw voltage values does not tell the complete story of an artifact
+* Examining distributions of the variances of voltages within small windows allows for rejection of bad sources or time
+
+The following are implementation requirements of the pipeline that meets the above assumptions:
+
+* Expert manual review is important and must be possible
+* Researcher must be able to free to manipulate their data before and after the pipeline easily
+* The pipeline must be able to be effective on large datasets effectively
+
+### Pipeline stages
+
+The key stages of the pipeline include:
+
+1. Special average reference calculation for leaving out comically bad channels
+2. Rejection of bad channels followed by rejection of bad time
+3. High and low pass filtering
+4. Bridged channel rejection (and rejection of channels that are too unlike their neighbours) as well as rank channel
+5. Compute first ICA
+6. Rejection of time where ICA failed to decompose signal into minimal number of components
+7. Second pass of ICA
+8. Post processing and classication of components using ICLabel
+
+For a formal breakdown of each step, please see the documentation.
+
+### Output state
+
+Users may choose to export data from the pipeline in any way they see fit. This includes BIDS, MNE's fif raw objects, EEGLAB files, or just cleaned EDFs.
+
+## Documentation
+ 
 Please find the full documentation at
 [**pylossless.readthedocs.io**](https://pylossless.readthedocs.io/en/latest/index.html).
 
 **NOTE**: This documentation refers to the original implementation and may have some slight differences compared to this fork. For now, issues can be opened here on GitHub if things appear to be incorrect/broken.
 
-### Fork Description
+## Fork Description
 
 This fork is maintained as a lightweight HPC-ready version of the original implementation.
 
@@ -111,6 +140,8 @@ cleaned_raw = review.apply_qc()
 ### ▶️ Example HPC Environment Setup
 
 If you are a Canadian researcher working on an HPC system such as [Narval](https://docs.alliancecan.ca/wiki/Narval/en):
+
+**NOTE**: This is currently out of date. Copy and paste at your own risk.
 
 ```bash
 # Build the virtualenv in your homedir
