@@ -141,31 +141,13 @@ cleaned_raw = review.apply_qc()
 
 If you are a Canadian researcher working on an HPC system such as [Narval](https://docs.alliancecan.ca/wiki/Narval/en):
 
-**NOTE**: This is currently out of date. Copy and paste at your own risk.
-
 ```bash
-# Build the virtualenv in your homedir
-virtualenv --no-download eeg-env
-source eeg-env/bin/activate
+# Load python and build the virtualenv in your homedir
+module load python/3.12
+virtualenv --no-download ~/eeg-env
+source ~/eeg-env/bin/activate
 
-pip install --no-index mne
-pip install --no-index pandas
-pip install --no-index xarray
-pip install --no-index pyyaml
-pip install --no-index sklearn
-pip install mne_bids
-
-# Clone down mne-iclabel and switch to the right version and install it locally
-git clone https://github.com/mne-tools/mne-icalabel.git
-cd mne-icalabel
-git checkout maint/0.4
-pip install .
-
-# Clone down pipeline and install without reading dependencies
-git clone git@github.com:lina-usc/pylossless.git
-cd pylossless
-pip install --no-deps .
-
-# Verify that the package has installed correct with an import
-python -c 'import pylossless'
+# Clone this also in your homedir and install
+git clone https://github.com/Andesha/pylossless.git
+pip install --no-deps ./pylossless
 ```
