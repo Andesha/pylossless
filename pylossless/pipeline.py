@@ -29,7 +29,7 @@ from mne.utils import logger, warn
 import mne_bids
 from mne_bids import get_bids_path_from_fname, BIDSPath
 
-from .config import Config
+from .config.config import Config
 from .flagging import FlaggedChs, FlaggedEpochs, FlaggedICs
 from ._logging import lossless_logger, lossless_time
 from .utils import _report_flagged_epochs
