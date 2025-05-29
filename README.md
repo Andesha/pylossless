@@ -149,5 +149,5 @@ source ~/eeg-env/bin/activate
 
 # Clone this also in your homedir and install
 git clone https://github.com/Andesha/pylossless.git
-pip install --no-deps ./pylossless
+pip install ./pylossless
 ```
