@@ -81,6 +81,8 @@ If you are unsure if the pipeline has been set up correctly, you can run a simpl
 pytest -W ignore tests/test_eeg_metrics.py::test_pipeline_running
 ```
 
+**NOTE**: You may need to manually make sure that the MNE sample data has a directory to download to. This issue was run into on MacOS and was fixed simply by running `mkdir -p ~/mne_data` in the terminal app.
+
 If this passes, you can assume the pipeline is working and ready to go! If not, please open an issue on the issue tracker.
 
 ## ▶️ Running the pyLossless Pipeline
