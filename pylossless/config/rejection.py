@@ -67,7 +67,7 @@ class RejectionPolicy(ConfigMixin):
         ch_flags_to_reject="all",
         ic_flags_to_reject="all",
         ic_rejection_threshold=0.3,
-        ch_cleaning_mode=None,
+        ch_cleaning_mode='interpolate',
         interpolate_bads_kwargs=None,
         remove_flagged_ics=True,
         post_filter_l_freq=None,
@@ -147,8 +147,9 @@ class RejectionPolicy(ConfigMixin):
                                  "'warning', or 'ignore'. Received "
                                  f"{version_mismatch}.")
 
-        # Get the raw object
+        # Get the raw object and load the raw object
         raw = pipeline.raw.copy()
+        raw.load_data()
 
         # Add channels to be rejected as bads
         for key in self["ch_flags_to_reject"]:
