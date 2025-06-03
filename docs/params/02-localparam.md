@@ -1,16 +1,3 @@
----
-title: "Determining Optimal Parameters"
-teaching: 35
-exercises: 10
-questions:
-- "How do you determine the optimial parameters for a dataset?"
-objectives:
-- "Understand how to optimize parameters for each dataset."
-keypoints:
-- "Optiminal parameters can be determined by running the `localparam.m` script."
-- "Once optiminal parameters are determined, these values can be input into the batch configuration file `c01`."
----
-
 ## Running the localParam.m Script
 
 Prior to running the data through the pipeline, optiminal parameters can be determined by running the `localParam.m` script on a loaded data file. This script is a version of the `s01` pipeline script that is designed to be run locally. Running the script will add annotations to the file that enable you to quickly determine the impact of parameter edits and find optiminal values. After the script is run, the annotations added to the EEG channel scroll plot can be visually inspected. This will allow for the determination of whether appropriate parameters were used based on the decisions that were made about channels and epochs. 
@@ -47,7 +34,7 @@ Decisions about time can be edited by the reviewer during the QC procedure, howe
 
 7. In the **Select visual editing parameters** pop-up window, type `60` in the `Y axis spacing [spacing]` field and `40` in the `window tine length [winlength]` field. The window should look like this:
 
-    ![Visually Edit in Scroll Plot Winodw]({{ page.root }}/fig/ViseditLocalParam.png "Visually Edit in Scroll Plot Window for local params")
+    ![Visually Edit in Scroll Plot Winodw](fig/ViseditLocalParam.png "Visually Edit in Scroll Plot Window for local params")
 
 8. Press enter after you finish inputting the values to ensure that they have been saved. Then press the `Ok` button. This will load a window containing the **EEG channel** data.
 
@@ -113,7 +100,7 @@ Decisions about time can be edited by the reviewer during the QC procedure, howe
 
 2. Scroll through the script until you reach the **Calculate Data SD** that says **identifying comically bad epochs**. In the script there will be a line that says `'plot_figs' 'off'`, to plot the figures change the `off` to `on`. Ensure that the changes have been saved. The script should look like this:
 
-    ![Plot Epoch Decision Criteria Figures]({{ page.root }}/fig/EpochDecisionOn.png "Plot Epoch Decision Criteria Figures")
+    ![Plot Epoch Decision Criteria Figures](fig/EpochDecisionOn.png "Plot Epoch Decision Criteria Figures")
 
 > ## Starting a new Matlab session 
 >    
@@ -132,7 +119,7 @@ Decisions about time can be edited by the reviewer during the QC procedure, howe
 
 5. The script will display 'Done!' in the command window when it has completed. The script will have printed out 4 figures as it ran. These figures represent that same time decision criteris from the pervious episode but show the decisions that are being made with the current parameters on the loaded file from the Face13 dataset. 
 
-![Face13 Time Decision Criteria Figs]({{ page.root }}/fig/Face13EpochCriteria.png "Face13 Time Decision Criteria Figs")
+![Face13 Time Decision Criteria Figs](fig/Face13EpochCriteria.png "Face13 Time Decision Criteria Figs")
 
 While trying to determine optiminal parameters for a dataset it can be helpful to plot the figures to see how parameter edits influence the different steps in the decisions making criteria function. 
 
@@ -140,7 +127,7 @@ While trying to determine optiminal parameters for a dataset it can be helpful t
 >    
 > The figures for the **channel** decision making criteria can also be plotted. The decision criteria for channels is located below the time decision criteria in the script. The line that says `'plot_figs' off'` needs to be changed to say `'plot_figs' on'`. The script should look like this:
 > 
-> ![Plot Channel Decision Criteria Figures]({{ page.root }}/fig/ChannelDecisionOn.png "Plot Channel Decision Criteria Figures").
+> ![Plot Channel Decision Criteria Figures](fig/ChannelDecisionOn.png "Plot Channel Decision Criteria Figures").
 >
 > {: .source}
 {: .callout}

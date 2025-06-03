@@ -1,17 +1,3 @@
----
-title: "Introdution to Lossless Parameters"
-teaching: 35
-exercises: 10
-questions:
-- "What are parameters?"
-- "How does the Lossless pipeline use parameters to make decisions?"
-objectives:
-- "Understand what parameters are and how they are used in the Lossless pipeline."
-keypoints:
-- "Parameters in batch configuration files can be edited to change the decisions made in the pipeline scripts."
-- "Editing parameters is the only way to change the decisions the pipeline has made about channels."
----
-
 ## Introduction
 
 Each script in the Lossless pipeline has parameters. Parameters can be conceptualized as various sliders and dials for tuning the performance of a particular script. In the case of Lossless, this is often montage information, path specifications, memory and time allocations on the remote, and outlier detection decision criteria. Parameters in Lossless are controlled (and defined) by the associated batch configuration files. 
@@ -22,7 +8,7 @@ It is highly recommended that parameters related to pipeline decision criteria a
 
 This figure shows the decision criteria for removing artefactual **channels** during the pipeline. These decisions are based on statistical distributions of the data and the pipeline decision criteria parameters. The parameters can be edited to change the decisions the pipeline is making about channels. Decisions regarding removing channels are made by the pipeline based on the parameters and **can not** be edited during the quality control procedured by the reviewer.
 
-![Decision Criteria Channels]({{ page.root }}/fig/PipelineChannelCriteria.png "Decision Criteria Channels")
+![Decision Criteria Channels](fig/PipelineChannelCriteria.png "Decision Criteria Channels")
 
 **A.** The voltage variance for each channel calculated for every 1-second epoch.
 
@@ -49,7 +35,7 @@ The **[sd_ch_vals]** parameter are the quantiles used for the critical distance.
 
 This figure shows the decision criteria for removing artefactual **time** during the pipeline. These decisions are based on statistical distributions of the data and the pipeline decision criteria parameters. The parameters can be edited to change the decisions the pipeline is making about time periods. The time decision criteria is the same idea as the channel decision criteria but the data is collasped in the other direction. 
 
-![Decision Criteria Time]({{ page.root }}/fig/PipelineTimeCriteria.png "Decision Criteria Time")
+![Decision Criteria Time](fig/PipelineTimeCriteria.png "Decision Criteria Time")
 
 **A.** The voltage variance for each channel calculated for every 1-second epoch.
 
