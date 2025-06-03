@@ -40,19 +40,17 @@ For a formal breakdown of each step, please see the documentation.
 
 Users may choose to export data from the pipeline in any way they see fit. This includes BIDS, MNE's fif raw objects, EEGLAB files, or just cleaned EDFs.
 
-## Documentation
- 
-Please find the full documentation at
-[**pylossless.readthedocs.io**](https://pylossless.readthedocs.io/en/latest/index.html).
-
-**NOTE**: This documentation refers to the original implementation and may have some slight differences compared to this fork. For now, issues can be opened here on GitHub if things appear to be incorrect/broken.
-
 ## Fork Description
 
 This fork is maintained as a lightweight HPC-ready version of the original implementation.
 
 All credit to the original Authors and their repository [here](https://github.com/lina-usc/pylossless).
 
+## Documentation
+ 
+Please find the full documentation located inside of this repository in the [docs folder](https://github.com/Andesha/pylossless/tree/main/docs).
+
+**NOTE**: This documentation is currently under construction and may contain some references to the old MATLAB version of the pipeline. The principles, however, still hold.
 
 ## 📘 Installation and usage instructions
 
