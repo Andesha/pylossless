@@ -19,7 +19,7 @@ The following are implementation requirements of the pipeline that meets the abo
 
 * Expert manual review is important and must be possible
 * Researcher must be able to free to manipulate their data before and after the pipeline easily
-* The pipeline must be able to be effective on large datasets effectively
+* The pipeline must be able to be effective on large datasets
 
 ### Pipeline stages
 
