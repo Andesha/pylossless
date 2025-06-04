@@ -1,9 +1,3 @@
-## Introduction
-
-Each script in the Lossless pipeline has parameters. Parameters can be conceptualized as various sliders and dials for tuning the performance of a particular script. In the case of Lossless, this is often montage information, path specifications, memory and time allocations on the remote, and outlier detection decision criteria. Parameters in Lossless are controlled (and defined) by the associated batch configuration files. 
-
-It is highly recommended that parameters related to pipeline decision criteria are optimized for each study. In the case of montage information and staging, it is *required* to change the configuration files. The parameters for channel and time decision criteria as well as montage information and staging can be edited in batch configuration file c01. Batch configuration files c03 and c05 also contain parameters, however these parameters should only be edited by expert users and are not covered in this tutorial.
-
 ## Channel Decision Criteria
 
 This figure shows the decision criteria for removing artefactual **channels** during the pipeline. These decisions are based on statistical distributions of the data and the pipeline decision criteria parameters. The parameters can be edited to change the decisions the pipeline is making about channels. Decisions regarding removing channels are made by the pipeline based on the parameters and **can not** be edited during the quality control procedured by the reviewer.
@@ -56,8 +50,3 @@ The **[sd_t_f_o]** parameter is the critical cut-off and indicates what percenta
 If there are non-artefactual time points that are being marked for removal for the measure of voltage variance, it is recommended to try increasing the **[sd_t_o]** and/or the **[sd_t_f_o]** parameters. 
 
 The **[sd_t_vals]** parameter are the quantiles used for the critical distance. The value for this parameter in the above example is [.3 .7], indicating that the 30% and 70% quantiles are used. When optimizing parameters it is recommmended to leave this parameter at the default values and change the **[sd_t_o]** and **[sd_t_f_o]** parameters to change pipeline decisions.  
-
-
-{% include links.md %}
-
----
