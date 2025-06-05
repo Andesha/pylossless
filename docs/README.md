@@ -4,3 +4,5 @@ Docs launching point
 * criteria function
 * expanded assumptions and workflows
 * what each annotation/flag is
+
+why one bad ica and one good

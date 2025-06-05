@@ -149,7 +149,151 @@ pipeline.run_with_raw(raw)
 
 # Lossless Parameter Definitons
 
-This section breaks down each major heading in the Lossless configuration file. 
+This section breaks down each major heading in the Lossless configuration file. Sections are in no particular order and may reference other documentation pages. Documentation for the parameters is available as inline comments on the fields.
+
+## Parameters for: `project`
+
+The `project` based parameters are mostly optional and control BIDS output fields. However, `analysis_montage` can be used as a last ditch attempt to forcibly load a montage on a file before the pipeline needs it.
+
+```
+project:
+    analysis_montage: '' # Used to set a montage if the input file does not already have one set
+    bids_montage: GSN-HydroCel-129 # BIDS output choice
+    coordsys:
+        EEGCoordinateSystem: Other # BIDS output choice
+        EEGCoordinateUnits: metres # BIDS output choice
+    readme: '# Description of the dataset' # BIDS output choice
+    set_montage_kwargs: {} # Optional way for pipeline to pass through extra montage information. See code for details.
+```
+
+## Parameters for: `epoching`
+
+The parameters in `epoching` control how the data is to be windowed for variance calculations.
+
+Only expert users should adjust to not cause data loss.
+
+```
+epoching:
+    epochs_args: # Baseline arguments for eeach window
+        baseline: null
+        tmax: 1
+        tmin: 0
+    overlap: 0 # Float, percent overlap
+```
+
+## Parameters for: `filtering`
+
+Fields in `filtering` are, of course, used to control the pipeline's filtering options. Note that the pipeline has a `h_freq` limit of 100hz so that muscle activity can be picked up by ICA and removed.
+
+```
+filtering:
+    filter_args:
+        h_freq: 100
+        l_freq: 1
+    notch_filter_args: 60 # Can be a list for multiple if necessary
+```
+
+## Parameters for: `ica`
+
+There are three main ICA configuration sections for the pipeline.
+
+1. Control over the first ICA with `ica/ica_args/run1`
+2. Also, control over the second ICA with `ica/ica_args/run2`
+3. Criteria function control over which moments in time are outliers due to the first ICA failing to decompose bad time periods into minimal components. See documentation elsewhere for formal defitions and explanations of the criteria function.
+
+ica:
+    ica_args:
+        run1:
+            method: fastica # Not used to correct data, only find bad time in run1
+        run2:
+            fit_params:
+                extended: true
+            method: infomax
+    noisy_ic_epochs: # Criteria function control
+        flag_crit: 0.2
+        outlier_method: quantile
+        outliers_kwargs:
+            k: 6
+            lower: 0.25
+            upper: 0.75
+        plot_diagnostic: false
+
+## Parameters for: `find_breaks`
+
+This is a section for passing in arguments to MNE's automatic annotation of breaks. It is suggested that researchers do this themselves manually to avoid issues unless using an extremely simple paradigm like an oddball that has very regular events. A good place to approach this problem would be in the "staging" portions of execution of the pipeline.
+
+```
+find_breaks: null
+```
+
+## Parameters for: `nearest_neighbors`
+
+Definitions for what to consider as "neighbours" when computing correlational based comparisons. For example, when looking at a single channel, compute how correlated it is to its neighbours. Too high, and the channel is likely bridged. Too low, and the channel is likely bad. This is also considered for epochs, i.e. any given moment of time should have some relationship to its neighbours.
+
+These parameters are often not changed.
+
+```
+nearest_neighbors:
+    n_nbr_ch: 3 # How many neighbouring channels to compare against
+    n_nbr_epoch: 3 # How many neighbouring epochs to compare against
+```
+
+## Parameters for: `bridged_channels`
+
+These parameters define how similar channels must be compared to their neighbours before being rejected. Neighbours are set via the `nearest_neighbors` section. Note that bridged channel rejection is computed differently than a criteria function operation. Instead, `bridge_trim` and `bridge_z` compose a most standard outlier detection.
+
+* `bridge_trim` is used to compute a trimmed mean and standard deviation on channel correlations scaled by their respective ranges
+* `bridge_z` is how many standard deviations away from the mean a channel is allowed to be before it is now considered bridged
+
+For a given dataset, the sensitivity of "how bridged" something must be before being marked as bad is done though `bridge_z`.
+
+* A higher value means that the pipeline must be "very sure" about the correlations and how bridged the channels may be
+* Lower values respectively correspond to being very sensitive. For example, stay away from low values on dense (256 channel) montages
+
+Note that this is a casual explanation and to be used as a reference. More detailed explanations can be found where bridged flags and annotations are formally defined.
+
+```
+bridged_channels:
+    bridge_trim: 40
+    bridge_z: 6
+```
+
+## Parameters for Criteria Function Fields
+
+TODO
+
+```
+noisy_channels:
+    flag_crit: 0.2
+    outlier_method: quantile
+    outliers_kwargs:
+        k: 6
+        lower: 0.25
+        upper: 0.75
+    plot_diagnostic: false
+noisy_epochs:
+    flag_crit: 0.2
+    outlier_method: quantile
+    outliers_kwargs:
+        k: 6
+        lower: 0.25
+        upper: 0.75
+    plot_diagnostic: false
+uncorrelated_channels:
+    flag_crit: 0.2
+    outlier_method: quantile
+    outliers_kwargs:
+        k: 6
+        lower: 0.25
+        upper: 0.75
+uncorrelated_epochs:
+    flag_crit: 0.2
+    outlier_method: quantile
+    outliers_kwargs:
+        k: 6
+        lower: 0.25
+        upper: 0.75
+```
 
 # How to Test Parameters
 
