@@ -106,7 +106,9 @@ ica:
   ica_args:
     run1:
       method: fastica
+      random_state: 5184
     run2:
       method: infomax
+      random_state: 5184
       fit_params:
         extended: True
