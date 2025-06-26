@@ -66,10 +66,12 @@ ica:
     ica_args:
         run1:
             method: fastica
+            random_state: 5184
         run2:
             fit_params:
                 extended: true
             method: infomax
+            random_state: 5184
     noisy_ic_epochs:
         flag_crit: 0.2
         outlier_method: quantile
@@ -199,16 +201,22 @@ There are three main ICA configuration sections for the pipeline.
 
 1. Control over the first ICA with `ica/ica_args/run1`
 2. Also, control over the second ICA with `ica/ica_args/run2`
-3. Criteria function control over which moments in time are outliers due to the first ICA failing to decompose bad time periods into minimal components. See documentation elsewhere for formal defitions and explanations of the criteria function.
+3. Criteria function control over which moments in time are outliers due to the first ICA failing to decompose bad time periods into minimal components. See documentation elsewhere for formal definitions and explanations of the criteria function.
 
+
+The ability to control a fixed random seed for replicability with `random_state` is available individually for both ICA sections.
+
+```
 ica:
     ica_args:
         run1:
             method: fastica # Not used to correct data, only find bad time in run1
+            random_state: 5184
         run2:
             fit_params:
                 extended: true
             method: infomax
+            random_state: 5184
     noisy_ic_epochs: # Criteria function control
         flag_crit: 0.2
         outlier_method: quantile
@@ -217,6 +225,7 @@ ica:
             lower: 0.25
             upper: 0.75
         plot_diagnostic: false
+```
 
 ## Parameters for: `find_breaks`
 
