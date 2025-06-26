@@ -306,7 +306,14 @@ uncorrelated_epochs:
 
 # How to Test Parameters
 
-TODO
+In general, the best way to test the efficacy of the various lossless parameters is to run a small subset of data files through the pipeline in a jupyter notebook. This small subset should include recordings with both high and low amounts of noise to ensure that good data is not being rejected in very clean files.
+
+For this small subset, enable `plot_diagnostic` for at least the `noisy_epochs` and `noisy_channels` criteria function fields. These will render plots similar to the below image inside of the notebook. From here, the effects of the criteria function parameters can be easily seen.
+
+For how to manipulate these parameters, see the section "Parameters for Criteria Function Fields". Documentation for how to read the diagnostic figures can be located on the criteria function page [here](criteriafunction.md).
+
+![Criteria Function Plot Example](fig/modern_cf.png "Criteria Function Plot Example")
+
 
 # Examples
 
