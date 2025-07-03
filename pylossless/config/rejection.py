@@ -182,10 +182,8 @@ class RejectionPolicy(ConfigMixin):
         raw = raw.set_eeg_reference('average')
 
         if self["post_filter_l_freq"] is not None:
-            print('filtering low')
             raw.filter(l_freq=self["post_filter_l_freq"], h_freq=None)
         if self["post_filter_h_freq"] is not None:
-            print('filtering high')
             raw.filter(l_freq=None, h_freq=self["post_filter_h_freq"])
 
         if return_ica:
