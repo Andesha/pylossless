@@ -10,9 +10,9 @@ The pyLossless pre-processing pipeline focuses on isolation of cortical signals 
 The following are the theoretical assumptions and foundations:
 
 * Independent component analysis (ICA) for removal of artifacts is extremely effective at cleaning data
-* ICA algorithms fall appart when there is non-stationarity (wild variance) in the data
+* ICA algorithms fall apart when there is non-stationarity (wild variance) in the data
 * The pipeline should seek to eliminate these times/sources to improve ICA outcomes
-* Raw voltage values does not tell the complete story of an artifact
+* Raw voltage values do not tell the complete story of an artifact
 * Examining distributions of the variances of voltages within small windows allows for rejection of bad sources or time
 
 The following are implementation requirements of the pipeline that meets the above assumptions:
@@ -32,7 +32,7 @@ The key stages of the pipeline include:
 5. Compute first ICA
 6. Rejection of time where ICA failed to decompose signal into minimal number of components
 7. Second pass of ICA
-8. Post processing and classication of components using [ICLabel](https://github.com/mne-tools/mne-icalabel).
+8. Post processing and classification of components using [ICLabel](https://github.com/mne-tools/mne-icalabel).
 
 **For a formal breakdown of each step, please see the documentation.**
 
